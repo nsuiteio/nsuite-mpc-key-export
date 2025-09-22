@@ -28,12 +28,9 @@ jobs:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.9
-
       - name: Build Wails app
         run: |
-          wails build -o KeyExport
+          task build
           ls -la build/bin/*
 
       - uses: actions/upload-artifact@v4

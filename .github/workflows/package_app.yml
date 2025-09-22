@@ -33,7 +33,7 @@ jobs:
 
       - name: Build Wails app
         run: |
-          wails build
+          wails build -o KeyExport
           ls -la build/bin/*
 
       - uses: actions/upload-artifact@v4

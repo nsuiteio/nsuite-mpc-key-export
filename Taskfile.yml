@@ -10,6 +10,7 @@ tasks:
       - init-wails
     cmd: |
       export PATH=$PATH:$(go env GOPATH)/bin
+      go mod tidy
       wails build
 
   test:

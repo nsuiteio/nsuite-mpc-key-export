@@ -31,10 +31,6 @@ jobs:
       - name: Build Wails app
         run: task build
 
-      - name: Remove quarantine attribute
-        run: xattr -dr com.apple.quarantine build/bin/*.app
-        if: matrix.build.os == 'macos-latest'
-
       - uses: actions/upload-artifact@v4
         with:
           name: KeyExport-${{ runner.os }}

@@ -10,7 +10,6 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
 	github.com/stretchr/testify v1.11.1
 	github.com/wailsapp/wails/v2 v2.10.2
-	github.com/wailsapp/go-webview2 v1.0.21
 )
 
 require (
@@ -61,3 +60,5 @@ require (
 )
 
 replace github.com/agl/ed25519 => github.com/binance-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
+
+replace github.com/jchv/go-webview2 => github.com/jchv/go-webview2 v1.0.21

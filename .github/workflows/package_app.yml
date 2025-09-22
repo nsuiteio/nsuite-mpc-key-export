@@ -29,9 +29,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Wails app
-        run: |
-          task build
-          ls -la build/bin/*
+        run: task build
 
       - uses: actions/upload-artifact@v4
         with:

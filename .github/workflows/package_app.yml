@@ -36,4 +36,3 @@ jobs:
           name: KeyExport-${{ runner.os }}
           path: |
             build/bin/*
-            !**/*.zip

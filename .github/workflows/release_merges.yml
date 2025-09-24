@@ -88,8 +88,11 @@ jobs:
             target=$(basename $dir).tar.gz
             echo "making $target"
             pushd $dir
-            ls -la *
-            chmod +x *
+            for file in $(find . -type f)
+            do
+              ls -la $file
+              chmod +x $file
+            done
             tar czf ../$target *
             popd
           done

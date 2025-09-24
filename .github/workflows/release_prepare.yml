@@ -33,3 +33,5 @@ jobs:
             --head release/${{ github.event.inputs.version }} \
             --title "Release ${{ github.event.inputs.version }}" \
             --body "Release ${{ github.event.inputs.version }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

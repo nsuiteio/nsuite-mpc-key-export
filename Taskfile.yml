@@ -1,0 +1,26 @@
+version: 3
+
+tasks:
+  init-wails:
+    cmd: |
+      go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
+
+  build:
+    deps:
+      - init-wails
+    cmd: |
+      export PATH=$PATH:$(go env GOPATH)/bin
+      wails build
+
+  test:
+    deps:
+      - build
+    cmd: |
+      go test -json ./...
+
+  run:
+    deps:
+      - build
+    cmd: |
+      export PATH=$PATH:$(go env GOPATH)/bin
+      wails dev

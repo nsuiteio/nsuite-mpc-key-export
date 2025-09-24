@@ -26,9 +26,10 @@ jobs:
           git checkout -b release/$VERSION
           git push --set-upstream origin release/$VERSION
 
-      - uses: repo-sync/pull-request@v2
-        with:
-          pr_title: Release ${{ github.event.inputs.version }}
-          source_branch: release/${{ github.event.inputs.version }}
-          destination_branch: "main"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: pull-request
+        run: |
+          gh pr create \
+            --base main \
+            --head release/${{ github.event.inputs.version }} \
+            --title "Release ${{ github.event.inputs.version }}" \
+            --body "Release ${{ github.event.inputs.version }}"

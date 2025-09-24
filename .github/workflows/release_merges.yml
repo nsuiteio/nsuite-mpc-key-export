@@ -21,22 +21,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-
-      - name: Build Wails
-        uses: dAppServer/wails-build-action@v2.2
-        id: build
+      - uses: actions/setup-go@v5
         with:
-          build-name: KeyExport
-          build-platform: ${{ matrix.build.platform }}
-          package: false
-          go-version: '1.25'
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Wails app
+        run: task build
 
       - uses: actions/upload-artifact@v4
         with:
           name: KeyExport-${{ runner.os }}
           path: |
             build/bin/*
-            !**/*.zip
 
   draft_release:
     needs: build

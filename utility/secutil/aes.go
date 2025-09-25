@@ -27,19 +27,28 @@ type (
 	aesKey      []byte
 )
 
-func NewAESPassword(password string) EncryptionKey {
+func NewAESPassword(password string) (EncryptionKey, error) {
+	if len(password) == 0 {
+		err := fmt.Errorf("password is empty")
+		return nil, errutil.Wrap(err)
+	}
 	ap := aesPassword(password)
-	return &ap
+	return &ap, nil
 }
 
-func NewAESKey(key []byte) EncryptionKey {
+func NewAESKey(key []byte) (EncryptionKey, error) {
+	if len(key) != aesKeySize {
+		err := fmt.Errorf("invalid key size: %v", len(key))
+		return nil, errutil.Wrap(err)
+	}
 	ak := aesKey(key)
-	return &ak
+	return &ak, nil
 }
 
-func (ap *aesPassword) deriveKey(salt []byte) EncryptionKey {
+func (ap *aesPassword) deriveKey(salt []byte) (EncryptionKey, error) {
 	if ap == nil {
-		return nil
+		err := fmt.Errorf("password is nil")
+		return nil, errutil.Wrap(err)
 	}
 	password := []byte(*ap)
 	key := argon2.IDKey(password, salt, 4, 64*1024, 2, aesKeySize)
@@ -48,7 +57,8 @@ func (ap *aesPassword) deriveKey(salt []byte) EncryptionKey {
 
 func (ap *aesPassword) Encrypt(plaintext []byte) ([]byte, error) {
 	if ap == nil {
-		return nil, fmt.Errorf("password is nil")
+		err := fmt.Errorf("password is nil")
+		return nil, errutil.Wrap(err)
 	}
 
 	salt := make([]byte, aesSaltSize)
@@ -56,7 +66,10 @@ func (ap *aesPassword) Encrypt(plaintext []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	key := ap.deriveKey(salt)
+	key, err := ap.deriveKey(salt)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
 
 	encrypted, err := key.Encrypt(plaintext)
 	if err != nil {
@@ -74,17 +87,22 @@ func (ap *aesPassword) Decrypt(ciphertext []byte) (
 	error,
 ) {
 	if ap == nil {
-		return nil, fmt.Errorf("password is nil")
+		err := fmt.Errorf("password is nil")
+		return nil, errutil.Wrap(err)
 	}
 
 	if len(ciphertext) < aesSaltSize {
-		return nil, fmt.Errorf("ciphertext too short")
+		err := fmt.Errorf("ciphertext too short")
+		return nil, errutil.Wrap(err)
 	}
 
 	salt := ciphertext[:aesSaltSize]
 	encrypted := ciphertext[aesSaltSize:]
 
-	key := ap.deriveKey(salt)
+	key, err := ap.deriveKey(salt)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
 
 	return key.Decrypt(encrypted)
 }
@@ -93,7 +111,8 @@ func (ak *aesKey) Encrypt(
 	plain []byte,
 ) ([]byte, error) {
 	if ak == nil {
-		return nil, fmt.Errorf("key is nil")
+		err := fmt.Errorf("key is nil")
+		return nil, errutil.Wrap(err)
 	}
 	key := []byte(*ak)
 
@@ -117,7 +136,8 @@ func (ak *aesKey) Decrypt(
 	encrypted []byte,
 ) ([]byte, error) {
 	if ak == nil {
-		return nil, fmt.Errorf("key is nil")
+		err := fmt.Errorf("key is nil")
+		return nil, errutil.Wrap(err)
 	}
 	key := []byte(*ak)
 

@@ -14,7 +14,10 @@ func TestEncryptAndDecrypt(t *testing.T) {
 	} else if n != len(expected) {
 		t.Fatalf("unexpected length: %d", n)
 	}
-	ap := NewAESPassword("password")
+	ap, err := NewAESPassword("password")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	ciphertext, err := ap.Encrypt(expected)
 	if err != nil {

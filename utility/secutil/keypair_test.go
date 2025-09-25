@@ -13,7 +13,7 @@ import (
 func TestRsaEncryptionPublicKey_MarshalAndUnmarshal(t *testing.T) {
 	ctx := logutil.Setup(context.Background(), t.Name())
 
-	prvkey, err := GenerateEncryptionKeyPair(ctx, EncryptionKeyTypeRSA)
+	prvkey, err := GenerateEncryptionKeyPair(ctx, EncryptionKeyPairTypeRSA)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestRsaEncryptionPublicKey_MarshalAndUnmarshal(t *testing.T) {
 func TestRsaEncryptionPrivateKey_MarshalAndUnmarshal(t *testing.T) {
 	ctx := logutil.Setup(context.Background(), t.Name())
 
-	prvkey, err := GenerateEncryptionKeyPair(ctx, EncryptionKeyTypeRSA)
+	prvkey, err := GenerateEncryptionKeyPair(ctx, EncryptionKeyPairTypeRSA)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestRsaEncryptionPrivateKey_MarshalAndUnmarshal(t *testing.T) {
 func TestRsaEncryption_EncryptAndDecrypt(t *testing.T) {
 	ctx := logutil.Setup(context.Background(), t.Name())
 
-	prvkey, err := GenerateEncryptionKeyPair(ctx, EncryptionKeyTypeRSA)
+	prvkey, err := GenerateEncryptionKeyPair(ctx, EncryptionKeyPairTypeRSA)
 	if err != nil {
 		t.Fatal(err)
 	}

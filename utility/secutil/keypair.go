@@ -14,7 +14,7 @@ import (
 )
 
 type (
-	EncryptionKeyType int
+	EncryptionKeyPairType int
 
 	EncryptionPublicKey interface {
 		MarshalToBytes() []byte
@@ -40,15 +40,15 @@ type (
 )
 
 const (
-	EncryptionKeyTypeRSA EncryptionKeyType = iota
+	EncryptionKeyPairTypeRSA EncryptionKeyPairType = iota
 )
 
 func GenerateEncryptionKeyPair(
 	ctx context.Context,
-	keyType EncryptionKeyType,
+	keyType EncryptionKeyPairType,
 ) (EncryptionPrivateKey, error) {
 	switch keyType {
-	case EncryptionKeyTypeRSA:
+	case EncryptionKeyPairTypeRSA:
 		return generateRSAEncryptionKeyPair(ctx)
 	}
 	err := fmt.Errorf("unsupported encryption key type: %d", keyType)
@@ -75,9 +75,9 @@ func EncryptionPublicKeyFromBytes(
 		err := fmt.Errorf("invalid public key bytes")
 		return nil, errutil.Wrap(err)
 	}
-	keyType := EncryptionKeyType(src[0])
+	keyType := EncryptionKeyPairType(src[0])
 	switch keyType {
-	case EncryptionKeyTypeRSA:
+	case EncryptionKeyPairTypeRSA:
 		pub := new(rsaEncryptionPublicKey)
 		if err := pub.UnmarshalFromBytes(src); err != nil {
 			return nil, errutil.Wrap(err)
@@ -95,9 +95,9 @@ func EncryptionPrivateKeyFromBytes(
 		err := fmt.Errorf("invalid private key bytes")
 		return nil, errutil.Wrap(err)
 	}
-	keyType := EncryptionKeyType(src[0])
+	keyType := EncryptionKeyPairType(src[0])
 	switch keyType {
-	case EncryptionKeyTypeRSA:
+	case EncryptionKeyPairTypeRSA:
 		prv := new(rsaEncryptionPrivateKey)
 		if err := prv.UnmarshalFromBytes(src); err != nil {
 			return nil, errutil.Wrap(err)
@@ -140,7 +140,7 @@ func (pub *rsaEncryptionPublicKey) Encrypt(
 func (pub *rsaEncryptionPublicKey) MarshalToBytes() []byte {
 	pubBs := x509.MarshalPKCS1PublicKey(pub.pubkey)
 	bs := make([]byte, 0, len(pubBs)+1)
-	bs = append(bs, byte(EncryptionKeyTypeRSA))
+	bs = append(bs, byte(EncryptionKeyPairTypeRSA))
 	bs = append(bs, pubBs...)
 	return bs
 }
@@ -152,8 +152,8 @@ func (pub *rsaEncryptionPublicKey) UnmarshalFromBytes(
 		err := fmt.Errorf("invalid public key bytes")
 		return errutil.Wrap(err)
 	}
-	keyType := EncryptionKeyType(src[0])
-	if keyType != EncryptionKeyTypeRSA {
+	keyType := EncryptionKeyPairType(src[0])
+	if keyType != EncryptionKeyPairTypeRSA {
 		err := fmt.Errorf("invalid public key type: %d", keyType)
 		return errutil.Wrap(err)
 	}
@@ -203,7 +203,7 @@ func (prv *rsaEncryptionPrivateKey) PublicKey() EncryptionPublicKey {
 func (prv *rsaEncryptionPrivateKey) MarshalToBytes() []byte {
 	prvBs := x509.MarshalPKCS1PrivateKey(prv.prvkey)
 	bs := make([]byte, 0, len(prvBs)+1)
-	bs = append(bs, byte(EncryptionKeyTypeRSA))
+	bs = append(bs, byte(EncryptionKeyPairTypeRSA))
 	bs = append(bs, prvBs...)
 	return bs
 }
@@ -215,8 +215,8 @@ func (prv *rsaEncryptionPrivateKey) UnmarshalFromBytes(
 		err := fmt.Errorf("invalid private key bytes")
 		return errutil.Wrap(err)
 	}
-	keyType := EncryptionKeyType(src[0])
-	if keyType != EncryptionKeyTypeRSA {
+	keyType := EncryptionKeyPairType(src[0])
+	if keyType != EncryptionKeyPairTypeRSA {
 		err := fmt.Errorf("invalid private key type: %d", keyType)
 		return errutil.Wrap(err)
 	}

@@ -1,4 +1,4 @@
-package keyutil
+package secutil
 
 import (
 	"context"

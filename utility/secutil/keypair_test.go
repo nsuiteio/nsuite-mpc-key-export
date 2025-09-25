@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/nsuiteio/trial-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
 )
 
 func TestRsaEncryptionPublicKey_MarshalAndUnmarshal(t *testing.T) {

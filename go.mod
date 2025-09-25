@@ -1,4 +1,4 @@
-module github.com/nsuiteio/trial-mpc-key-export
+module github.com/nsuiteio/nst-mpc-key-export
 
 go 1.25
 

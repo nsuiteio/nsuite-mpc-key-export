@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/nsuiteio/trial-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 )
 
 type (

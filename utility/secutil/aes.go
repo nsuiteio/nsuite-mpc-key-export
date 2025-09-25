@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/crypto/argon2"
 
-	"github.com/nsuiteio/trial-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 )
 
 const (

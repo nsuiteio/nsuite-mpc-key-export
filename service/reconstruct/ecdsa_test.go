@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
-	"github.com/nsuiteio/trial-mpc-key-export/utility/keyutil"
-	"github.com/nsuiteio/trial-mpc-key-export/utility/strutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/keyutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,25 +31,30 @@ func TestReconstructECDSA(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run("", func(t *testing.T) {
-			shares := make([]*keygen.LocalPartySaveData, len(tc.localShares))
-			for i, shareHex := range tc.localShares {
-				shareBs, err := strutil.FromHex(shareHex)
+		t.Run(
+			"", func(t *testing.T) {
+				shares := make(
+					[]*keygen.LocalPartySaveData,
+					len(tc.localShares),
+				)
+				for i, shareHex := range tc.localShares {
+					shareBs, err := strutil.FromHex(shareHex)
+					if err != nil {
+						t.Fatal(err)
+					}
+					share, err := keyutil.LocalDataFromBytesECDSA(ctx, shareBs)
+					if err != nil {
+						t.Fatal(err)
+					}
+					shares[i] = share
+				}
+				prvKey, err := ReconstructECDSA(ctx, tc.threshold, shares)
 				if err != nil {
 					t.Fatal(err)
 				}
-				share, err := keyutil.LocalDataFromBytesECDSA(ctx, shareBs)
-				if err != nil {
-					t.Fatal(err)
-				}
-				shares[i] = share
-			}
-			prvKey, err := ReconstructECDSA(ctx, tc.threshold, shares)
-			if err != nil {
-				t.Fatal(err)
-			}
-			prvStr := strutil.ToHex(prvKey.Serialize())
-			assert.Equal(t, tc.expected, prvStr)
-		})
+				prvStr := strutil.ToHex(prvKey.Serialize())
+				assert.Equal(t, tc.expected, prvStr)
+			},
+		)
 	}
 }

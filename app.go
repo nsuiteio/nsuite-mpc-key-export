@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nsuiteio/trial-mpc-key-export/service/reconstruct"
+	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
 )
 
 // App struct

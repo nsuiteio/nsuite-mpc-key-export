@@ -45,3 +45,7 @@ func (a *App) Reconstruct(curveName string) string {
 	}
 	return fmt.Sprintf("Private Key: %s", bsHex)
 }
+
+func (a *App) GenerateKeyPair() string {
+	return "Generate Key Pair"
+}

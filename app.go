@@ -26,7 +26,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-// Greet returns a greeting for the given name
+// Reconstruct returns sample private key
 func (a *App) Reconstruct(curveName string) string {
 	var bsHex string
 	switch curveName {

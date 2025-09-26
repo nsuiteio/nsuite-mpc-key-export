@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
@@ -9,12 +10,14 @@ import (
 
 // App struct
 type App struct {
+	name string
+
 	ctx context.Context
 }
 
 // NewApp creates a new App application struct
-func NewApp() *App {
-	return &App{}
+func NewApp(name string) *App {
+	return &App{name: name}
 }
 
 // startup is called when the app starts. The context is saved

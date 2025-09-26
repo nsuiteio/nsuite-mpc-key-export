@@ -8,6 +8,8 @@ import (
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
 )
 
 // App struct
@@ -29,25 +31,53 @@ func (a *App) startup(ctx context.Context) {
 }
 
 // Reconstruct returns sample private key
-func (a *App) Reconstruct(curveName string) string {
+func (a *App) Reconstruct(curveName string) (string, error) {
 	var bsHex string
 	switch curveName {
 	case "ECDSA":
 		if hex, err := reconstruct.SampleECDSA(a.ctx); err != nil {
-			return err.Error()
+			return "", err
 		} else {
 			bsHex = hex
 		}
 	case "EdDSA":
 		if hex, err := reconstruct.SampleEdDSA(a.ctx); err != nil {
-			return err.Error()
+			return "", err
 		} else {
 			bsHex = hex
 		}
 	}
-	return fmt.Sprintf("Private Key: %s", bsHex)
+	return fmt.Sprintf("Private Key: %s", bsHex), nil
 }
 
-func (a *App) GenerateKeyPair() string {
-	return "Generate Key Pair"
+func (a *App) GenerateKeyPair(password string) (string, error) {
+	ctx := a.ctx
+
+	akey, err := secutil.NewAESPassword(password)
+	if err != nil {
+		return "", err
+	}
+	privateKey, err := secutil.GenerateEncryptionKeyPair(
+		ctx,
+		secutil.EncryptionKeyPairTypeRSA,
+	)
+	if err != nil {
+		return "", err
+	}
+	plainData := privateKey.MarshalToBytes()
+	encriptedData, err := akey.Encrypt(plainData)
+	if err != nil {
+		return "", err
+	}
+
+	storage, err := cfgutil.NewSecStorage(ctx, a.config.Name)
+	if err != nil {
+		return "", err
+	}
+	if err := storage.Save(ctx, encriptedData, "encryption.key"); err != nil {
+		return "", err
+	}
+
+	plainHex := strutil.ToHex(plainData)
+	return plainHex, nil
 }

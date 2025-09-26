@@ -6,24 +6,26 @@ import (
 	"fmt"
 
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
 )
 
 // App struct
 type App struct {
-	name string
+	config *cfgutil.WailsJson
 
 	ctx context.Context
 }
 
 // NewApp creates a new App application struct
-func NewApp(name string) *App {
-	return &App{name: name}
+func NewApp(config *cfgutil.WailsJson) *App {
+	return &App{config: config}
 }
 
 // startup is called when the app starts. The context is saved
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
-	a.ctx = ctx
+	a.ctx = logutil.Setup(ctx, a.config.Name)
 }
 
 // Reconstruct returns sample private key

@@ -9,6 +9,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
+	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 )
 
@@ -21,15 +22,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading wails.json: %s", err.Error())
 	}
-	name := wj.Name
 
 	// Create an instance of the app structure
-	app := NewApp(name)
+	app := NewApp(wj)
 
 	// Create application with options
 	if err := wails.Run(
 		&options.App{
-			Title:  name,
+			Title:  wj.Name,
 			Width:  1024,
 			Height: 768,
 			AssetServer: &assetserver.Options{
@@ -46,19 +46,11 @@ func main() {
 	}
 }
 
-type WailsJson struct {
-	Name   string `json:"name"`
-	Author struct {
-		Name  string `json:"name"`
-		Email string `json:"email"`
-	} `json:"author"`
-}
-
 //go:embed wails.json
 var wailsJson string
 
-func loadWailsJson() (*WailsJson, error) {
-	var wj WailsJson
+func loadWailsJson() (*cfgutil.WailsJson, error) {
+	var wj cfgutil.WailsJson
 	if err := json.Unmarshal([]byte(wailsJson), &wj); err != nil {
 		return nil, errutil.Wrap(err)
 	}

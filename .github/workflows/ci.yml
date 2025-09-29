@@ -60,9 +60,6 @@ jobs:
           cache-dependency-path: go.sum
       - name: Run Test
         run: go test -p 1 -json ./... | tee test-reports.json
-        env:
-          HOSTNAME: board.nsuite.io # テストで必要なので仕方なく追加
-          EVM_NODES: ${{ vars.EVM_NODES }} # `Repository variables` に設定しておく 例){"5": "https://..."}
       - name: Annotate test-reports
         if: always()
         uses: guyarb/golang-test-annotations@v0.8.0

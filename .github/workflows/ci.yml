@@ -12,8 +12,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go/go.mod
-          cache-dependency-path: go/go.sum
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - name: Install formatters
         run: |
           go install golang.org/x/tools/cmd/goimports@latest
@@ -31,13 +31,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go/go.mod
-          cache-dependency-path: go/go.sum
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - name: Lint
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.3
-          working-directory: go
 
   test:
     runs-on: ubuntu-arm64-2core
@@ -57,11 +56,10 @@ jobs:
             ${{ runner.os }}-go-
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go/go.mod
-          cache-dependency-path: go/go.sum
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - name: Run Test
         run: go test -p 1 -json ./... | tee test-reports.json
-        working-directory: go
         env:
           HOSTNAME: board.nsuite.io # テストで必要なので仕方なく追加
           EVM_NODES: ${{ vars.EVM_NODES }} # `Repository variables` に設定しておく 例){"5": "https://..."}
@@ -69,4 +67,4 @@ jobs:
         if: always()
         uses: guyarb/golang-test-annotations@v0.8.0
         with:
-          test-results: go/test-reports.json
+          test-results: test-reports.json

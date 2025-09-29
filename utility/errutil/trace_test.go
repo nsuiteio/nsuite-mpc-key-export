@@ -97,7 +97,10 @@ func TestUnwrap_MultipleWrappedErrors(t *testing.T) {
 	originalErr := errors.New("original error")
 
 	// Manually create nested wrapped errors to test recursive unwrapping
-	wrapped1 := &WrappedError{Cause: originalErr, StackTrace: []string{"trace1"}}
+	wrapped1 := &WrappedError{
+		Cause:      originalErr,
+		StackTrace: []string{"trace1"},
+	}
 	wrapped2 := &WrappedError{Cause: wrapped1, StackTrace: []string{"trace2"}}
 	wrapped3 := &WrappedError{Cause: wrapped2, StackTrace: []string{"trace3"}}
 
@@ -131,7 +134,12 @@ func TestWrap_StackTraceContent(t *testing.T) {
 	for _, trace := range wrapped.StackTrace {
 		assert.Contains(t, trace, ":")
 		parts := strings.Split(trace, ":")
-		assert.Len(t, parts, 2, "Stack trace entry should be in file:line format")
+		assert.Len(
+			t,
+			parts,
+			2,
+			"Stack trace entry should be in file:line format",
+		)
 	}
 }
 

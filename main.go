@@ -13,7 +13,7 @@ import (
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 )
 
-//go:embed all:frontend/dist
+//go:embed frontend/dist
 var assets embed.FS
 
 func main() {

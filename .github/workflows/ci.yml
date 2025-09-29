@@ -1,0 +1,72 @@
+name: CI
+on: [pull_request]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - name: Install formatters
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          go install github.com/segmentio/golines@latest
+      - name: Check format
+        run: if [ "$((golines --max-len=80 --dry-run . | tee /dev/stderr) | wc -l)" -gt 0 ]; then exit 1; fi
+
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.3
+          working-directory: go
+
+  test:
+    runs-on: ubuntu-arm64-2core
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+      - name: Run Test
+        run: go test -p 1 -json ./... | tee test-reports.json
+        working-directory: go
+        env:
+          HOSTNAME: board.nsuite.io # テストで必要なので仕方なく追加
+          EVM_NODES: ${{ vars.EVM_NODES }} # `Repository variables` に設定しておく 例){"5": "https://..."}
+      - name: Annotate test-reports
+        if: always()
+        uses: guyarb/golang-test-annotations@v0.8.0
+        with:
+          test-results: go/test-reports.json

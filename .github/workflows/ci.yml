@@ -41,7 +41,7 @@ jobs:
 
       - name: Build Wails app
         run: |
-          sudo apt-get install libgtk-3-dev libwebkit2gtk-4.1-dev
+          sudo apt-get install libgtk-3-dev libwebkit2gtk-4.0-dev
           task build
 
       - uses: golangci/golangci-lint-action@v8
@@ -76,7 +76,7 @@ jobs:
 
       - name: Build Wails app
         run: |
-          sudo apt-get install libgtk-3-dev libwebkit2gtk-4.1-dev
+          sudo apt-get install libgtk-3-dev libwebkit2gtk-4.0-dev
           task build
 
       - name: Run Test

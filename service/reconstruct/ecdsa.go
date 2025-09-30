@@ -8,10 +8,10 @@ import (
 	"github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
 	"github.com/bnb-chain/tss-lib/v2/tss"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
-	"github.com/nsuiteio/trial-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/trial-mpc-key-export/utility/keyutil"
-	"github.com/nsuiteio/trial-mpc-key-export/utility/logutil"
-	"github.com/nsuiteio/trial-mpc-key-export/utility/strutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/keyutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
 )
 
 func ReconstructECDSA(

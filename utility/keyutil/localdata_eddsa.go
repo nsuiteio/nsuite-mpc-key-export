@@ -8,9 +8,9 @@ import (
 
 	"github.com/bnb-chain/tss-lib/v2/eddsa/keygen"
 	"github.com/bnb-chain/tss-lib/v2/tss"
-	"github.com/nsuiteio/trial-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/trial-mpc-key-export/utility/logutil"
-	"github.com/nsuiteio/trial-mpc-key-export/utility/ziputil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/ziputil"
 )
 
 func LocalDataFromBytesEdDSA(
@@ -22,15 +22,19 @@ func LocalDataFromBytesEdDSA(
 	)
 	str, err := ziputil.GunzipBytes(ctx, data)
 	if err != nil {
-		logger.Error("failed to gunzip",
-			slog.String("error", err.Error()))
+		logger.Error(
+			"failed to gunzip",
+			slog.String("error", err.Error()),
+		)
 		return nil, errutil.Wrap(err)
 	}
 
 	var result keygen.LocalPartySaveData
 	if err := json.Unmarshal(str, &result); err != nil {
-		logger.Error("could not unmarshal json",
-			slog.String("error", err.Error()))
+		logger.Error(
+			"could not unmarshal json",
+			slog.String("error", err.Error()),
+		)
 		return nil, errutil.Wrap(err)
 	} else if result.EDDSAPub == nil {
 		err := fmt.Errorf("not EdDSA key share")

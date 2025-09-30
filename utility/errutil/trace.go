@@ -57,8 +57,9 @@ func Unwrap(err error) error {
 	for {
 		next := errors.Unwrap(cause)
 		if next == nil {
-			return cause
+			break
 		}
 		cause = next
 	}
+	return cause
 }

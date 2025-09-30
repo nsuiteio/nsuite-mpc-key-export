@@ -22,7 +22,7 @@ jobs:
         run: if [ "$((golines --max-len=80 --dry-run . | tee /dev/stderr) | wc -l)" -gt 0 ]; then exit 1; fi
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-arm64-2core
     timeout-minutes: 5
     defaults:
       run:

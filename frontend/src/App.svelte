@@ -2,13 +2,17 @@
     import logo from './assets/images/logo-universal.png'
     import * as app from '../wailsjs/go/main/App.js'
 
-    let resultText = "Please enter your name below 👇"
-    let name
+    let resultText = "Please enter key type (ECDSA/EdDSA) 👇"
+    let curveName
     let password
     let privateKey
 
-    function greet() {
-        app.Reconstruct(name).then(result => resultText = result)
+    async function reconstruct() {
+        try {
+            resultText = await app.Reconstruct(curveName)
+        } catch (e) {
+            console.log(e)
+        }
     }
 
     async function genKeyPair() {
@@ -24,8 +28,8 @@
     <img alt="Wails logo" id="logo" src="{logo}">
     <div class="result" id="result">{resultText}</div>
     <div class="input-box" id="input">
-        <input autocomplete="off" bind:value={name} class="input" id="name" type="text"/>
-        <button class="btn" on:click={greet}>Greet</button>
+        <input autocomplete="off" bind:value={curveName} class="input" id="name" type="text"/>
+        <button class="btn" on:click={reconstruct}>Greet</button>
     </div>
     <div class="result">{privateKey}</div>
     <div class="input-box" id="input">

@@ -3,13 +3,12 @@
     import * as app from '../wailsjs/go/main/App.js'
 
     let resultText = "Please enter key type (ECDSA/EdDSA) 👇"
-    let curveName
     let password
     let privateKey
 
     async function reconstruct() {
         try {
-            resultText = await app.Reconstruct(curveName)
+            resultText = await app.Reconstruct()
         } catch (e) {
             console.log(e)
         }
@@ -28,7 +27,6 @@
     <img alt="Wails logo" id="logo" src="{logo}">
     <div class="result" id="result">{resultText}</div>
     <div class="input-box" id="input">
-        <input autocomplete="off" bind:value={curveName} class="input" id="name" type="text"/>
         <button class="btn" on:click={reconstruct}>Greet</button>
     </div>
     <div class="result">{privateKey}</div>

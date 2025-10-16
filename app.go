@@ -32,21 +32,22 @@ func (a *App) startup(ctx context.Context) {
 
 // Reconstruct returns sample private key
 func (a *App) Reconstruct(curveName string) (string, error) {
-	var bsHex string
+	var bs []byte
 	switch curveName {
 	case "ECDSA":
-		if hex, err := reconstruct.SampleECDSA(a.ctx); err != nil {
+		if b, err := reconstruct.SampleECDSA(a.ctx); err != nil {
 			return "", err
 		} else {
-			bsHex = hex
+			bs = b
 		}
 	case "EdDSA":
-		if hex, err := reconstruct.SampleEdDSA(a.ctx); err != nil {
+		if b, err := reconstruct.SampleEdDSA(a.ctx); err != nil {
 			return "", err
 		} else {
-			bsHex = hex
+			bs = b
 		}
 	}
+	bsHex := strutil.ToHex(bs)
 	return fmt.Sprintf("Private Key: %s", bsHex), nil
 }
 

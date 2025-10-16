@@ -6,6 +6,6 @@ export function GenerateKeyPair(arg1) {
   return window['go']['main']['App']['GenerateKeyPair'](arg1);
 }
 
-export function Reconstruct(arg1) {
-  return window['go']['main']['App']['Reconstruct'](arg1);
+export function Reconstruct() {
+  return window['go']['main']['App']['Reconstruct']();
 }

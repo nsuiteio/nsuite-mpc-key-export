@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	_ "embed"
-	"fmt"
 
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
@@ -31,23 +30,28 @@ func (a *App) startup(ctx context.Context) {
 }
 
 // Reconstruct returns sample private key
-func (a *App) Reconstruct(curveName string) (string, error) {
-	var bsHex string
-	switch curveName {
-	case "ECDSA":
-		if hex, err := reconstruct.SampleECDSA(a.ctx); err != nil {
-			return "", err
-		} else {
-			bsHex = hex
-		}
-	case "EdDSA":
-		if hex, err := reconstruct.SampleEdDSA(a.ctx); err != nil {
-			return "", err
-		} else {
-			bsHex = hex
-		}
+func (a *App) Reconstruct() (string, error) {
+	ecdsaBs, err := reconstruct.SampleECDSA(a.ctx)
+	if err != nil {
+		return "", err
 	}
-	return fmt.Sprintf("Private Key: %s", bsHex), nil
+	eddsaBs, err := reconstruct.SampleEdDSA(a.ctx)
+	if err != nil {
+		return "", err
+	}
+
+	storage, err := cfgutil.NewSecStorage(a.ctx, a.config.Name)
+	if err != nil {
+		return "", err
+	}
+	if err := storage.Save(a.ctx, ecdsaBs, "ecdsa.key"); err != nil {
+		return "", err
+	}
+	if err := storage.Save(a.ctx, eddsaBs, "eddsa.key"); err != nil {
+		return "", err
+	}
+
+	return "OK", nil
 }
 
 func (a *App) GenerateKeyPair(password string) (string, error) {

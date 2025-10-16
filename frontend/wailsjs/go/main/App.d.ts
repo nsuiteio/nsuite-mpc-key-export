@@ -3,4 +3,4 @@
 
 export function GenerateKeyPair(arg1:string):Promise<string>;
 
-export function Reconstruct(arg1:string):Promise<string>;
+export function Reconstruct():Promise<string>;

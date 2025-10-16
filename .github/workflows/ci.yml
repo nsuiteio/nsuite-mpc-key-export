@@ -41,6 +41,7 @@ jobs:
 
       - name: Build Wails app
         run: |
+          sudo apt-get update
           sudo apt-get install libgtk-3-dev libwebkit2gtk-4.0-dev
           task build
 
@@ -76,6 +77,7 @@ jobs:
 
       - name: Build Wails app
         run: |
+          sudo apt-get update
           sudo apt-get install libgtk-3-dev libwebkit2gtk-4.0-dev
           task build
 

@@ -4,7 +4,7 @@
 
     let resultText = "Please enter key type (ECDSA/EdDSA) 👇"
     let password
-    let privateKey
+    let qrImage
 
     async function reconstruct() {
         try {
@@ -16,7 +16,7 @@
 
     async function genKeyPair() {
         try {
-            privateKey = await app.GenerateKeyPair(password)
+            qrImage = await app.GenerateKeyPair(password)
         } catch (e) {
             console.log(e)
         }
@@ -29,7 +29,7 @@
     <div class="input-box" id="input">
         <button class="btn" on:click={reconstruct}>Greet</button>
     </div>
-    <div class="result">{privateKey}</div>
+    <div class="result">{qrImage}</div>
     <div class="input-box" id="input">
         <input autocomplete="off" bind:value={password} class="input" id="password" type="password"/>
         <button class="btn" on:click={genKeyPair}>Generate Key Pair</button>

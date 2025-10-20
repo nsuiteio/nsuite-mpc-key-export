@@ -1,18 +1,14 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"encoding/base64"
-	"io"
-
-	"github.com/yeqown/go-qrcode/v2"
-	"github.com/yeqown/go-qrcode/writer/standard"
 
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/qrutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
 )
 
@@ -88,29 +84,10 @@ func (a *App) GenerateKeyPair(password string) (string, error) {
 	}
 
 	pubkey := privateKey.PublicKey()
-	qrc, err := qrcode.New(string(pubkey.MarshalToBytes()))
+	bs, err := qrutil.GenerateQRCodePNG(pubkey.MarshalToBytes())
 	if err != nil {
 		return "", err
 	}
-
-	var buf bytes.Buffer
-	// bytes.Buffer を io.WriterCloser に変換
-	wc := struct {
-		io.Writer
-		io.Closer
-	}{
-		Writer: &buf,
-		Closer: io.NopCloser(nil), // 空の Close 実装
-	}
-	wr := standard.NewWithWriter(wc)
-	if err := qrc.Save(wr); err != nil {
-		return "", err
-	}
-	if err := wr.Close(); err != nil {
-		return "", err
-	}
-
-	bs := buf.Bytes()
 	b64 := base64.StdEncoding.EncodeToString(bs)
 
 	return "data:image/png;base64," + b64, nil

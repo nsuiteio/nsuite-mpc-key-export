@@ -10,6 +10,8 @@ import (
 
 	ecdsa "github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
 	eddsa "github.com/bnb-chain/tss-lib/v2/eddsa/keygen"
+	"github.com/decred/dcrd/dcrec/edwards/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
@@ -43,27 +45,6 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = logutil.Setup(ctx, a.config.Name)
 }
 
-// Reconstruct sample keyshares
-func (a *App) Reconstruct() (string, error) {
-	ecdsaBs, err := reconstruct.SampleECDSA(a.ctx)
-	if err != nil {
-		return "", err
-	}
-	eddsaBs, err := reconstruct.SampleEdDSA(a.ctx)
-	if err != nil {
-		return "", err
-	}
-
-	if err := a.saveECDSA(a.ctx, ecdsaBs); err != nil {
-		return "", err
-	}
-	if err := a.saveEdDSA(a.ctx, eddsaBs); err != nil {
-		return "", err
-	}
-
-	return "OK", nil
-}
-
 func (a *App) ChooseKeyShares(password string) (string, error) {
 	ctx := a.ctx
 	logger := logutil.Get(ctx).With(
@@ -75,15 +56,7 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 		return "", err
 	}
 
-	encryptedPrivateKey, err := a.loadKeyPair(ctx)
-	if err != nil {
-		return "", err
-	}
-	privateKeyBs, err := akey.Decrypt(encryptedPrivateKey)
-	if err != nil {
-		return "", err
-	}
-	privateKey, err := secutil.EncryptionPrivateKeyFromBytes(privateKeyBs)
+	privateKey, err := a.loadKeyPair(ctx, akey)
 	if err != nil {
 		return "", err
 	}
@@ -146,7 +119,7 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 		keySharesECDSA,
 	); err != nil {
 		return "", err
-	} else if err := a.saveECDSA(ctx, prvkey.Serialize()); err != nil {
+	} else if err := a.saveECDSA(ctx, akey, prvkey); err != nil {
 		return "", err
 	}
 
@@ -156,7 +129,7 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 		keySharesEdDSA,
 	); err != nil {
 		return "", err
-	} else if err := a.saveEdDSA(ctx, prvkey.Serialize()); err != nil {
+	} else if err := a.saveEdDSA(ctx, akey, prvkey); err != nil {
 		return "", err
 	}
 
@@ -177,13 +150,8 @@ func (a *App) GenerateKeyPair(password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	plainData := privateKey.MarshalToBytes()
-	encriptedData, err := akey.Encrypt(plainData)
-	if err != nil {
-		return "", err
-	}
 
-	if err := a.saveKeyPair(ctx, encriptedData); err != nil {
+	if err := a.saveKeyPair(ctx, akey, privateKey); err != nil {
 		return "", err
 	}
 
@@ -221,23 +189,52 @@ func (a *App) getStorage(ctx context.Context) (cfgutil.Storage, error) {
 	return a.storage, nil
 }
 
-func (a *App) saveKeyPair(ctx context.Context, bs []byte) error {
+func (a *App) saveKeyPair(
+	ctx context.Context,
+	ekey secutil.EncryptionKey,
+	keyPair secutil.EncryptionPrivateKey,
+) error {
+	plainBs := keyPair.MarshalToBytes()
+	encriptedBs, err := ekey.Encrypt(plainBs)
+	if err != nil {
+		return errutil.Wrap(err)
+	}
 	storage, err := a.getStorage(ctx)
 	if err != nil {
 		return errutil.Wrap(err)
 	}
-	return storage.Save(ctx, bs, pathEncryptionKey)
+	return storage.Save(ctx, encriptedBs, pathEncryptionKey)
 }
 
-func (a *App) loadKeyPair(ctx context.Context) ([]byte, error) {
+func (a *App) loadKeyPair(
+	ctx context.Context,
+	ekey secutil.EncryptionKey,
+) (secutil.EncryptionPrivateKey, error) {
 	storage, err := a.getStorage(ctx)
 	if err != nil {
 		return nil, errutil.Wrap(err)
 	}
-	return storage.Load(ctx, pathEncryptionKey)
+	plainBs, err := storage.Load(ctx, pathEncryptionKey)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	bs, err := ekey.Decrypt(plainBs)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	return secutil.EncryptionPrivateKeyFromBytes(bs)
 }
 
-func (a *App) saveECDSA(ctx context.Context, bs []byte) error {
+func (a *App) saveECDSA(
+	ctx context.Context,
+	ekey secutil.EncryptionKey,
+	prvkey *secp256k1.PrivateKey,
+) error {
+	plainBs := prvkey.Serialize()
+	bs, err := ekey.Encrypt(plainBs)
+	if err != nil {
+		return errutil.Wrap(err)
+	}
 	storage, err := a.getStorage(ctx)
 	if err != nil {
 		return errutil.Wrap(err)
@@ -245,15 +242,36 @@ func (a *App) saveECDSA(ctx context.Context, bs []byte) error {
 	return storage.Save(ctx, bs, pathECDSA)
 }
 
-func (a *App) loadECDSA(ctx context.Context) ([]byte, error) {
+func (a *App) loadECDSA(
+	ctx context.Context,
+	ekey secutil.EncryptionKey,
+) (*secp256k1.PrivateKey, error) {
 	storage, err := a.getStorage(ctx)
 	if err != nil {
 		return nil, errutil.Wrap(err)
 	}
-	return storage.Load(ctx, pathECDSA)
+	plainBs, err := storage.Load(ctx, pathECDSA)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	bs, err := ekey.Decrypt(plainBs)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	prvkey := secp256k1.PrivKeyFromBytes(bs)
+	return prvkey, nil
 }
 
-func (a *App) saveEdDSA(ctx context.Context, bs []byte) error {
+func (a *App) saveEdDSA(
+	ctx context.Context,
+	ekey secutil.EncryptionKey,
+	prvkey *edwards.PrivateKey,
+) error {
+	plainBs := prvkey.Serialize()
+	bs, err := ekey.Encrypt(plainBs)
+	if err != nil {
+		return errutil.Wrap(err)
+	}
 	storage, err := a.getStorage(ctx)
 	if err != nil {
 		return errutil.Wrap(err)
@@ -261,10 +279,25 @@ func (a *App) saveEdDSA(ctx context.Context, bs []byte) error {
 	return storage.Save(ctx, bs, pathEdDSA)
 }
 
-func (a *App) loadEdDSA(ctx context.Context) ([]byte, error) {
+func (a *App) loadEdDSA(
+	ctx context.Context,
+	ekey secutil.EncryptionKey,
+) (*edwards.PrivateKey, error) {
 	storage, err := a.getStorage(ctx)
 	if err != nil {
 		return nil, errutil.Wrap(err)
 	}
-	return storage.Load(ctx, pathEdDSA)
+	plainBs, err := storage.Load(ctx, pathEdDSA)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	bs, err := ekey.Decrypt(plainBs)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	prvkey, _, err := edwards.PrivKeyFromScalar(bs)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	return prvkey, nil
 }

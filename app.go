@@ -4,14 +4,18 @@ import (
 	"context"
 	_ "embed"
 	"encoding/base64"
+	"encoding/json"
 	"log/slog"
 	"sync"
 
+	ecdsa "github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
+	eddsa "github.com/bnb-chain/tss-lib/v2/eddsa/keygen"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/keyutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/qrutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
@@ -71,6 +75,19 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 		return "", err
 	}
 
+	encryptedPrivateKey, err := a.loadKeyPair(ctx)
+	if err != nil {
+		return "", err
+	}
+	privateKeyBs, err := akey.Decrypt(encryptedPrivateKey)
+	if err != nil {
+		return "", err
+	}
+	privateKey, err := secutil.EncryptionPrivateKeyFromBytes(privateKeyBs)
+	if err != nil {
+		return "", err
+	}
+
 	file, err := runtime.OpenFileDialog(
 		ctx, runtime.OpenDialogOptions{
 			Title: "ファイルを選択してください",
@@ -91,30 +108,57 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 		return "", err
 	}
 
-	encryptedPrivateKey, err := a.loadKeyPair(ctx)
-	if err != nil {
-		return "", err
+	type keyStruct struct {
+		ECDSA []byte `json:"ecdsa"`
+		EdDSA []byte `json:"eddsa"`
 	}
-	privateKeyBs, err := akey.Decrypt(encryptedPrivateKey)
-	if err != nil {
-		return "", err
-	}
-	privateKey, err := secutil.EncryptionPrivateKeyFromBytes(privateKeyBs)
-	if err != nil {
-		return "", err
-	}
-
-	keyShares := make(map[string][]byte)
-	for k, encryptedKeyShare := range encyptedKeyShares {
+	var keySharesECDSA []*ecdsa.LocalPartySaveData
+	var keySharesEdDSA []*eddsa.LocalPartySaveData
+	for k, bs := range encyptedKeyShares {
 		logger.Info("decrypting key share", slog.String("key", k))
-		plainKeyShare, err := privateKey.Decrypt(encryptedKeyShare)
-		if err != nil {
+		var keys keyStruct
+		if err := json.Unmarshal(bs, &keys); err != nil {
 			return "", err
 		}
-		keyShares[k] = plainKeyShare
+		if plainBs, err := privateKey.Decrypt(keys.ECDSA); err != nil {
+			return "", err
+		} else if keyShare, err := keyutil.LocalDataFromBytesECDSA(
+			ctx,
+			plainBs,
+		); err != nil {
+			keySharesECDSA = append(keySharesECDSA, keyShare)
+		}
+		if plainBs, err := privateKey.Decrypt(keys.EdDSA); err != nil {
+			return "", err
+		} else if plainKeyShare, err := keyutil.LocalDataFromBytesEdDSA(
+			ctx,
+			plainBs,
+		); err != nil {
+			keySharesEdDSA = append(keySharesEdDSA, plainKeyShare)
+		}
 	}
 
-	// parse KeySahres
+	const threshold = 3
+
+	if prvkey, err := reconstruct.ReconstructECDSA(
+		ctx,
+		threshold,
+		keySharesECDSA,
+	); err != nil {
+		return "", err
+	} else if err := a.saveECDSA(ctx, prvkey.Serialize()); err != nil {
+		return "", err
+	}
+
+	if prvkey, err := reconstruct.ReconstructEdDSA(
+		ctx,
+		threshold,
+		keySharesEdDSA,
+	); err != nil {
+		return "", err
+	} else if err := a.saveEdDSA(ctx, prvkey.Serialize()); err != nil {
+		return "", err
+	}
 
 	return "OK", nil
 }

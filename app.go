@@ -4,6 +4,9 @@ import (
 	"context"
 	_ "embed"
 	"encoding/base64"
+	"log/slog"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
@@ -30,7 +33,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = logutil.Setup(ctx, a.config.Name)
 }
 
-// Reconstruct returns sample private key
+// Reconstruct sample keyshares
 func (a *App) Reconstruct() (string, error) {
 	ecdsaBs, err := reconstruct.SampleECDSA(a.ctx)
 	if err != nil {
@@ -51,6 +54,31 @@ func (a *App) Reconstruct() (string, error) {
 	if err := storage.Save(a.ctx, eddsaBs, "eddsa.key"); err != nil {
 		return "", err
 	}
+
+	return "OK", nil
+}
+
+func (a *App) ChooseKeyShares(password string) (string, error) {
+	ctx := a.ctx
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "ChooseKeyShares"),
+	)
+
+	file, err := runtime.OpenFileDialog(
+		ctx, runtime.OpenDialogOptions{
+			Title: "ファイルを選択してください",
+			Filters: []runtime.FileFilter{
+				{
+					DisplayName: "ZIPファイル (*.zip)",
+					Pattern:     "*.zip",
+				},
+			},
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	logger.Info("file", slog.String("file", file))
 
 	return "OK", nil
 }

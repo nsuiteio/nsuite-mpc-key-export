@@ -1,11 +1,12 @@
 <script>
     import * as app from '../../wailsjs/go/main/App.js'
 
+    let password
     let result
 
-    async function reconstruct() {
+    async function chooseKeyShares() {
         try {
-            result = await app.Reconstruct()
+            result = await app.ChooseKeyShares(password)
         } catch (e) {
             console.log(e)
         }
@@ -14,7 +15,8 @@
 
 <div class="result" id="result">{result}</div>
 <div class="input-box" id="input">
-    <button class="btn" on:click={reconstruct}>Choose file</button>
+    <input autocomplete="off" bind:value={password} class="input" id="password" type="password"/>
+    <button class="btn" on:click={chooseKeyShares}>Choose file</button>
 </div>
 
 <style>

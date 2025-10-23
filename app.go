@@ -15,6 +15,7 @@ import (
 	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/qrutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/ziputil"
 )
 
 // App struct
@@ -65,6 +66,11 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 		slog.String("function", "ChooseKeyShares"),
 	)
 
+	akey, err := secutil.NewAESPassword(password)
+	if err != nil {
+		return "", err
+	}
+
 	file, err := runtime.OpenFileDialog(
 		ctx, runtime.OpenDialogOptions{
 			Title: "ファイルを選択してください",
@@ -79,7 +85,36 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	logger.Info("file", slog.String("file", file))
+	logger.Info("reading zip file", slog.String("file", file))
+	encyptedKeyShares, err := ziputil.UnzipFile(ctx, file)
+	if err != nil {
+		return "", err
+	}
+
+	encryptedPrivateKey, err := a.loadKeyPair(ctx)
+	if err != nil {
+		return "", err
+	}
+	privateKeyBs, err := akey.Decrypt(encryptedPrivateKey)
+	if err != nil {
+		return "", err
+	}
+	privateKey, err := secutil.EncryptionPrivateKeyFromBytes(privateKeyBs)
+	if err != nil {
+		return "", err
+	}
+
+	keyShares := make(map[string][]byte)
+	for k, encryptedKeyShare := range encyptedKeyShares {
+		logger.Info("decrypting key share", slog.String("key", k))
+		plainKeyShare, err := privateKey.Decrypt(encryptedKeyShare)
+		if err != nil {
+			return "", err
+		}
+		keyShares[k] = plainKeyShare
+	}
+
+	// parse KeySahres
 
 	return "OK", nil
 }

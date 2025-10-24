@@ -52,6 +52,8 @@ func LoadFromZip(
 			ctx,
 			plainBs,
 		); err != nil {
+			return nil, nil, errutil.Wrap(err)
+		} else {
 			keySharesECDSA = append(keySharesECDSA, keyShare)
 		}
 		if plainBs, err := privateKey.Decrypt(keys.EdDSA); err != nil {
@@ -60,6 +62,8 @@ func LoadFromZip(
 			ctx,
 			plainBs,
 		); err != nil {
+			return nil, nil, errutil.Wrap(err)
+		} else {
 			keySharesEdDSA = append(keySharesEdDSA, plainKeyShare)
 		}
 	}

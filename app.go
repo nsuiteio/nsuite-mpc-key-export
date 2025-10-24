@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"sync"
 
@@ -56,8 +57,12 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 		return "", err
 	}
 
-	privateKey, err := a.loadKeyPair(ctx, akey)
+	privateKey, ok, err := a.loadKeyPair(ctx, akey)
 	if err != nil {
+		return "", err
+	}
+	if !ok {
+		err := fmt.Errorf("key pair not found")
 		return "", err
 	}
 
@@ -209,20 +214,27 @@ func (a *App) saveKeyPair(
 func (a *App) loadKeyPair(
 	ctx context.Context,
 	ekey secutil.EncryptionKey,
-) (secutil.EncryptionPrivateKey, error) {
+) (secutil.EncryptionPrivateKey, bool, error) {
 	storage, err := a.getStorage(ctx)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
 	}
-	plainBs, err := storage.Load(ctx, pathEncryptionKey)
+	plainBs, ok, err := storage.Load(ctx, pathEncryptionKey)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
+	}
+	if !ok {
+		return nil, false, nil
 	}
 	bs, err := ekey.Decrypt(plainBs)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
 	}
-	return secutil.EncryptionPrivateKeyFromBytes(bs)
+	pk, err := secutil.EncryptionPrivateKeyFromBytes(bs)
+	if err != nil {
+		return nil, false, errutil.Wrap(err)
+	}
+	return pk, true, nil
 }
 
 func (a *App) saveECDSA(
@@ -245,21 +257,24 @@ func (a *App) saveECDSA(
 func (a *App) loadECDSA(
 	ctx context.Context,
 	ekey secutil.EncryptionKey,
-) (*secp256k1.PrivateKey, error) {
+) (*secp256k1.PrivateKey, bool, error) {
 	storage, err := a.getStorage(ctx)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
 	}
-	plainBs, err := storage.Load(ctx, pathECDSA)
+	plainBs, ok, err := storage.Load(ctx, pathECDSA)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
+	}
+	if !ok {
+		return nil, false, nil
 	}
 	bs, err := ekey.Decrypt(plainBs)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
 	}
 	prvkey := secp256k1.PrivKeyFromBytes(bs)
-	return prvkey, nil
+	return prvkey, true, nil
 }
 
 func (a *App) saveEdDSA(
@@ -282,22 +297,25 @@ func (a *App) saveEdDSA(
 func (a *App) loadEdDSA(
 	ctx context.Context,
 	ekey secutil.EncryptionKey,
-) (*edwards.PrivateKey, error) {
+) (*edwards.PrivateKey, bool, error) {
 	storage, err := a.getStorage(ctx)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
 	}
-	plainBs, err := storage.Load(ctx, pathEdDSA)
+	plainBs, ok, err := storage.Load(ctx, pathEdDSA)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
+	}
+	if !ok {
+		return nil, false, nil
 	}
 	bs, err := ekey.Decrypt(plainBs)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
 	}
 	prvkey, _, err := edwards.PrivKeyFromScalar(bs)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
 	}
-	return prvkey, nil
+	return prvkey, true, nil
 }

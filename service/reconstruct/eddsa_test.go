@@ -6,6 +6,7 @@ import (
 
 	"github.com/bnb-chain/tss-lib/v2/eddsa/keygen"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/nsuiteio/nst-mpc-key-export/utility/keyutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
@@ -47,19 +48,13 @@ func TestReconstructEdDSA(t *testing.T) {
 				)
 				for i, shareHex := range tc.localShares {
 					shareBs, err := strutil.FromHex(shareHex)
-					if err != nil {
-						t.Fatal(err)
-					}
+					require.NoError(t, err)
 					share, err := keyutil.LocalDataFromBytesEdDSA(ctx, shareBs)
-					if err != nil {
-						t.Fatal(err)
-					}
+					require.NoError(t, err)
 					shares[i] = share
 				}
 				prvKey, err := ReconstructEdDSA(ctx, tc.threshold, shares)
-				if err != nil {
-					t.Fatal(err)
-				}
+				require.NoError(t, err)
 				prvStr := strutil.ToHex(prvKey.Serialize())
 				assert.Equal(t, tc.expected, prvStr)
 			},

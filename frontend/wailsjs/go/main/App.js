@@ -6,10 +6,6 @@ export function ChooseKeyShares(arg1) {
   return window['go']['main']['App']['ChooseKeyShares'](arg1);
 }
 
-export function GenerateKeyPair(arg1) {
-  return window['go']['main']['App']['GenerateKeyPair'](arg1);
-}
-
-export function Reconstruct() {
-  return window['go']['main']['App']['Reconstruct']();
+export function GenerateKeyPair(arg1, arg2) {
+  return window['go']['main']['App']['GenerateKeyPair'](arg1, arg2);
 }

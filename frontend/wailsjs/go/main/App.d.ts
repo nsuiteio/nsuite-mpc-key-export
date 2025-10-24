@@ -3,6 +3,4 @@
 
 export function ChooseKeyShares(arg1:string):Promise<string>;
 
-export function GenerateKeyPair(arg1:string):Promise<string>;
-
-export function Reconstruct():Promise<string>;
+export function GenerateKeyPair(arg1:string,arg2:boolean):Promise<string>;

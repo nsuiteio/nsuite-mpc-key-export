@@ -22,6 +22,7 @@ import (
 	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/qrutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/ziputil"
 )
 
@@ -141,13 +142,25 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 	return "OK", nil
 }
 
-func (a *App) GenerateKeyPair(password string) (string, error) {
+func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 	ctx := a.ctx
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "GenerateKeyPair"),
+	)
 
 	akey, err := secutil.NewAESPassword(password)
 	if err != nil {
 		return "", err
 	}
+	if !force {
+		if _, ok, err := a.loadKeyPair(ctx, akey); err != nil {
+			return "", err
+		} else if ok {
+			err := fmt.Errorf("key pair already exists")
+			return "", err
+		}
+	}
+
 	privateKey, err := secutil.GenerateEncryptionKeyPair(
 		ctx,
 		secutil.EncryptionKeyPairTypeRSA,
@@ -160,12 +173,16 @@ func (a *App) GenerateKeyPair(password string) (string, error) {
 		return "", err
 	}
 
-	pubkey := privateKey.PublicKey()
-	bs, err := qrutil.GenerateQRCodePNG(pubkey.MarshalToBytes())
+	pubkeyBs := privateKey.PublicKey().MarshalToBytes()
+	logger.Info(
+		"generated key pair",
+		slog.String("public_key", strutil.ToHex(pubkeyBs)),
+	)
+	png, err := qrutil.GenerateQRCodePNG(pubkeyBs)
 	if err != nil {
 		return "", err
 	}
-	b64 := base64.StdEncoding.EncodeToString(bs)
+	b64 := base64.StdEncoding.EncodeToString(png)
 
 	return "data:image/png;base64," + b64, nil
 }

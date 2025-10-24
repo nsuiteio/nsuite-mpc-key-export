@@ -13,7 +13,7 @@ import (
 type (
 	Storage interface {
 		Save(ctx context.Context, data []byte, path ...string) error
-		Load(ctx context.Context, path ...string) ([]byte, error)
+		Load(ctx context.Context, path ...string) ([]byte, bool, error)
 	}
 
 	secStorageImpl struct {
@@ -80,7 +80,7 @@ func (ss *secStorageImpl) Save(
 func (ss *secStorageImpl) Load(
 	ctx context.Context,
 	path ...string,
-) ([]byte, error) {
+) ([]byte, bool, error) {
 	logger := logutil.Get(ctx).With(
 		slog.String("function", "Load"),
 		slog.String("sub_path", filepath.Join(path...)),
@@ -91,16 +91,23 @@ func (ss *secStorageImpl) Load(
 		slog.String("full_path", fullPath),
 	)
 	logger.Info("loading file")
+	if _, err := os.Stat(fullPath); err != nil {
+		if os.IsNotExist(err) {
+			logger.Warn("file not found")
+			return nil, false, nil
+		}
+		return nil, false, errutil.Wrap(err)
+	}
 	file, err := os.Open(fullPath)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
 	}
 	data, err := os.ReadFile(fullPath)
 	if err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
 	}
 	if err := file.Close(); err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, false, errutil.Wrap(err)
 	}
-	return data, nil
+	return data, true, nil
 }

@@ -4,13 +4,10 @@ import (
 	"context"
 	_ "embed"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sync"
 
-	ecdsa "github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
-	eddsa "github.com/bnb-chain/tss-lib/v2/eddsa/keygen"
 	"github.com/decred/dcrd/dcrec/edwards/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -18,12 +15,10 @@ import (
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/keyutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/qrutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/ziputil"
 )
 
 // App struct
@@ -81,41 +76,19 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	logger.Info("reading zip file", slog.String("file", file))
-	encyptedKeyShares, err := ziputil.UnzipFile(ctx, file)
+	keySharesECDSA, keySharesEdDSA, err := reconstruct.LoadFromZip(
+		ctx,
+		privateKey,
+		file,
+	)
 	if err != nil {
 		return "", err
 	}
-
-	type keyStruct struct {
-		ECDSA []byte `json:"ecdsa"`
-		EdDSA []byte `json:"eddsa"`
-	}
-	var keySharesECDSA []*ecdsa.LocalPartySaveData
-	var keySharesEdDSA []*eddsa.LocalPartySaveData
-	for k, bs := range encyptedKeyShares {
-		logger.Info("decrypting key share", slog.String("key", k))
-		var keys keyStruct
-		if err := json.Unmarshal(bs, &keys); err != nil {
-			return "", err
-		}
-		if plainBs, err := privateKey.Decrypt(keys.ECDSA); err != nil {
-			return "", err
-		} else if keyShare, err := keyutil.LocalDataFromBytesECDSA(
-			ctx,
-			plainBs,
-		); err != nil {
-			keySharesECDSA = append(keySharesECDSA, keyShare)
-		}
-		if plainBs, err := privateKey.Decrypt(keys.EdDSA); err != nil {
-			return "", err
-		} else if plainKeyShare, err := keyutil.LocalDataFromBytesEdDSA(
-			ctx,
-			plainBs,
-		); err != nil {
-			keySharesEdDSA = append(keySharesEdDSA, plainKeyShare)
-		}
-	}
+	logger.Info(
+		"loaded key shares",
+		slog.Int("ecdsa_shares", len(keySharesECDSA)),
+		slog.Int("eddsa_shares", len(keySharesEdDSA)),
+	)
 
 	const threshold = 3
 

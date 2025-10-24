@@ -160,6 +160,53 @@ func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 	return "data:image/png;base64," + b64, nil
 }
 
+func (a *App) GetPrivateKey(
+	password string,
+	keyType string,
+	index int32,
+) (string, error) {
+	ctx := a.ctx
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "GetPrivateKey"),
+		slog.String("key_type", keyType),
+		slog.Int("index", int(index)),
+	)
+	logger.Info("started")
+
+	akey, err := secutil.NewAESPassword(password)
+	if err != nil {
+		return "", err
+	}
+
+	// TODO: derive by index
+
+	switch keyType {
+	case "ECDSA":
+		prvkey, ok, err := a.loadECDSA(ctx, akey)
+		if err != nil {
+			return "", err
+		}
+		if !ok {
+			err := fmt.Errorf("ECDSA key not found")
+			return "", err
+		}
+		logger.Info("loaded ECDSA key")
+		return strutil.ToHex(prvkey.Serialize()), nil
+	case "EdDSA":
+		prvkey, ok, err := a.loadEdDSA(ctx, akey)
+		if err != nil {
+			return "", err
+		}
+		if !ok {
+			err := fmt.Errorf("EdDSA key not found")
+			return "", err
+		}
+		logger.Info("loaded EdDSA key")
+		return strutil.ToHex(prvkey.Serialize()), nil
+	}
+	return "", fmt.Errorf("unknown key type")
+}
+
 //////// Access to storage
 
 const (

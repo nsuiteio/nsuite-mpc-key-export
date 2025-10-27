@@ -256,14 +256,14 @@ func (a *App) loadKeyPair(
 	if err != nil {
 		return nil, false, errutil.Wrap(err)
 	}
-	plainBs, ok, err := storage.Load(ctx, pathEncryptionKey)
+	encBs, ok, err := storage.Load(ctx, pathEncryptionKey)
 	if err != nil {
 		return nil, false, errutil.Wrap(err)
 	}
 	if !ok {
 		return nil, false, nil
 	}
-	bs, err := ekey.Decrypt(plainBs)
+	bs, err := ekey.Decrypt(encBs)
 	if err != nil {
 		return nil, false, errutil.Wrap(err)
 	}

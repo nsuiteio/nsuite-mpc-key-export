@@ -248,6 +248,20 @@ func (a *App) saveKeyPair(
 	return storage.Save(ctx, encriptedBs, pathEncryptionKey)
 }
 
+func (a *App) isKeyPairExists(
+	ctx context.Context,
+) (bool, error) {
+	storage, err := a.getStorage(ctx)
+	if err != nil {
+		return false, errutil.Wrap(err)
+	}
+	_, ok, err := storage.Load(ctx, pathEncryptionKey)
+	if err != nil {
+		return false, errutil.Wrap(err)
+	}
+	return ok, nil
+}
+
 func (a *App) loadKeyPair(
 	ctx context.Context,
 	ekey secutil.EncryptionKey,

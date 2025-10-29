@@ -115,6 +115,19 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 	return "OK", nil
 }
 
+func (a *App) CheckKeyPair() (bool, error) {
+	ctx := a.ctx
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "CheckKeyPair"),
+	)
+	logger.Info("started")
+	ok, err := a.isKeyPairExists(ctx)
+	if err != nil {
+		return false, err
+	}
+	return ok, nil
+}
+
 func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 	ctx := a.ctx
 	logger := logutil.Get(ctx).With(

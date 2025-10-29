@@ -2,7 +2,7 @@
     import * as app from '../../wailsjs/go/main/App.js'
 
     let password
-    let result
+    let result = ""
 
     async function chooseKeyShares() {
         try {
@@ -13,11 +13,14 @@
     }
 </script>
 
-<div class="result" id="result">{result}</div>
 <div class="input-box" id="input">
-    <input autocomplete="off" bind:value={password} class="input" id="password" type="password"/>
+    <div>
+        <label for="password">Password</label>
+        <input autocomplete="off" bind:value={password} class="input" id="password" type="password"/>
+    </div>
     <button class="btn" on:click={chooseKeyShares}>Choose file</button>
 </div>
+<div class="result" id="result">{result}</div>
 
 <style>
     .result {

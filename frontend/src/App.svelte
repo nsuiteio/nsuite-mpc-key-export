@@ -9,16 +9,16 @@
     ];
 </script>
 
-<div class="flex h-screen">
+<div id="app-container">
     <!-- Sidebar -->
-    <nav class="w-64 bg-gray-800 text-white flex flex-col">
-        <div class="p-4 border-b border-gray-700">
-            <h2 class="text-xl font-bold">Menu</h2>
+    <nav id="sidebar">
+        <div id="sidebar-header">
+            <h2>Menu</h2>
         </div>
-        <ul class="flex-1 px-2 py-2">
+        <ul id="sidebar-menu">
             {#each menuItems as item}
                 <li>
-                    <a href={item.href} class="block px-4 py-2 rounded hover:bg-gray-700">
+                    <a href={item.href}>
                         {item.label}
                     </a>
                 </li>
@@ -27,8 +27,8 @@
     </nav>
 
     <!-- Main content -->
-    <div class="flex-1 flex flex-col">
-        <main class="flex-1 p-6 overflow-auto">
+    <div id="main-container">
+        <main id="main">
             <Router/>
         </main>
     </div>

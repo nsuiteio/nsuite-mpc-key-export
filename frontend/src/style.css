@@ -1,6 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 html {
     background-color: rgba(27, 38, 54, 1);
-    text-align: center;
     color: white;
 }
 
@@ -18,9 +21,4 @@ body {
     font-weight: 400;
     src: local(""),
     url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
-}
-
-#app {
-    height: 100vh;
-    text-align: center;
 }

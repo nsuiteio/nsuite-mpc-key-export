@@ -1,23 +1,35 @@
 <script>
-    import { Router, Link, Route } from "svelte-routing";
-    import Reconstruct from "./pages/Reconstruct.svelte";
-    import GenerateKeyPair from "./pages/GenerateKeyPair.svelte";
+    import {Router} from 'sv-router';
+    import './router.js';
+
+    const menuItems = [
+        { label: 'Home', href: '/' },
+        { label: 'Generate Key Pair', href: '/generate-key-pair' },
+        { label: 'Reconstruct', href: '/reconstruct' }
+    ];
 </script>
 
-<Router>
-    <nav>
-        <Link to="/">Home</Link>
-        <Link to="/reconstruct">Reconstruct</Link>
-        <Link to="/generate-key-pair">Generate Key Pair</Link>
-
-        <Route path="/reconstruct" component="{Reconstruct}" />
-        <Route path="/generate-key-pair" component="{GenerateKeyPair}" />
+<div id="app-container">
+    <!-- Sidebar -->
+    <nav id="sidebar">
+        <div id="sidebar-header">
+            <h2>Menu</h2>
+        </div>
+        <ul id="sidebar-menu">
+            {#each menuItems as item}
+                <li>
+                    <a href={item.href}>
+                        {item.label}
+                    </a>
+                </li>
+            {/each}
+        </ul>
     </nav>
-</Router>
 
-<style>
-    nav {
-        gap: 1rem;
-        margin: 1rem;
-    }
-</style>
+    <!-- Main content -->
+    <div id="main-container">
+        <main id="main">
+            <Router/>
+        </main>
+    </div>
+</div>

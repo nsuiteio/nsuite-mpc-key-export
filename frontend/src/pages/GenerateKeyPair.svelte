@@ -1,15 +1,26 @@
 <script>
     import * as app from '../../wailsjs/go/main/App.js'
+    import {onMount} from "svelte";
 
     let force = false
     let password
     let qrImage
     let showPopup = false
+    let isGenerated = false
+
+    onMount(async () => {
+        try {
+            isGenerated = await app.CheckKeyPair()
+        } catch (e) {
+            console.log(e)
+        }
+    })
 
     async function genKeyPair() {
         try {
             qrImage = await app.GenerateKeyPair(password, force)
             showPopup = true
+            isGenerated = true
         } catch (e) {
             console.log(e)
         }
@@ -19,6 +30,33 @@
         showPopup = false
     }
 </script>
+
+<div>
+    <label for="force">Force</label>
+    <input bind:checked={force} class="input" id="force" type="checkbox"/>
+</div>
+
+{#if isGenerated && !force}
+    <div>
+        <p>Key pair already generated</p>
+    </div>
+{:else}
+    <div class="input-box" id="input">
+        <div>
+            <label for="password">Password</label>
+            <input autocomplete="off" bind:value={password} class="input" id="password" type="password"/>
+        </div>
+        <button class="btn" on:click={genKeyPair}>Generate Key Pair</button>
+    </div>
+{/if}
+
+{#if showPopup}
+    <div class="overlay">
+        <button class="btn" on:click={closePopup}>
+            <img alt="QR code" id="qr" src="{qrImage}" width="200" height="200">
+        </button>
+    </div>
+{/if}
 
 <style>
     .overlay {
@@ -34,23 +72,3 @@
         z-index: 999;
     }
 </style>
-
-<div class="input-box" id="input">
-    <div>
-        <label for="force">Force</label>
-        <input bind:checked={force} class="input" id="force" type="checkbox"/>
-    </div>
-    <div>
-        <label for="password">Password</label>
-        <input autocomplete="off" bind:value={password} class="input" id="password" type="password"/>
-    </div>
-    <button class="btn" on:click={genKeyPair}>Generate Key Pair</button>
-</div>
-
-{#if showPopup}
-    <div class="overlay">
-        <button class="btn" on:click={closePopup}>
-            <img alt="QR code" id="qr" src="{qrImage}" width="200" height="200">
-        </button>
-    </div>
-{/if}

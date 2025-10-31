@@ -115,6 +115,19 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 	return "OK", nil
 }
 
+func (a *App) CheckKeyPair() (bool, error) {
+	ctx := a.ctx
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "CheckKeyPair"),
+	)
+	logger.Info("started")
+	ok, err := a.isKeyPairExists(ctx)
+	if err != nil {
+		return false, err
+	}
+	return ok, nil
+}
+
 func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 	ctx := a.ctx
 	logger := logutil.Get(ctx).With(
@@ -248,6 +261,20 @@ func (a *App) saveKeyPair(
 	return storage.Save(ctx, encriptedBs, pathEncryptionKey)
 }
 
+func (a *App) isKeyPairExists(
+	ctx context.Context,
+) (bool, error) {
+	storage, err := a.getStorage(ctx)
+	if err != nil {
+		return false, errutil.Wrap(err)
+	}
+	_, ok, err := storage.Load(ctx, pathEncryptionKey)
+	if err != nil {
+		return false, errutil.Wrap(err)
+	}
+	return ok, nil
+}
+
 func (a *App) loadKeyPair(
 	ctx context.Context,
 	ekey secutil.EncryptionKey,
@@ -256,14 +283,14 @@ func (a *App) loadKeyPair(
 	if err != nil {
 		return nil, false, errutil.Wrap(err)
 	}
-	plainBs, ok, err := storage.Load(ctx, pathEncryptionKey)
+	encBs, ok, err := storage.Load(ctx, pathEncryptionKey)
 	if err != nil {
 		return nil, false, errutil.Wrap(err)
 	}
 	if !ok {
 		return nil, false, nil
 	}
-	bs, err := ekey.Decrypt(plainBs)
+	bs, err := ekey.Decrypt(encBs)
 	if err != nil {
 		return nil, false, errutil.Wrap(err)
 	}

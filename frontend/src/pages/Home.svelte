@@ -30,9 +30,11 @@
     }
 </script>
 
+<h1>Home</h1>
+
 {#if isGenerated}
     <div>
-        <h1>Key Pair Generated</h1>
+        <p>Key Pair Generated</p>
     </div>
 {:else}
     <div class="input-box" id="input">

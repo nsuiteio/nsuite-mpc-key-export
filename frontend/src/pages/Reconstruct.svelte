@@ -13,6 +13,8 @@
     }
 </script>
 
+<h1>Reconstruct</h1>
+
 <div class="input-box" id="input">
     <div>
         <label for="password">Password</label>

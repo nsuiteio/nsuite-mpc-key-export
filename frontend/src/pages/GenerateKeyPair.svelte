@@ -31,6 +31,8 @@
     }
 </script>
 
+<h1>Generate Key Pair</h1>
+
 {#if isGenerated}
     <div>
         <label for="force">Force</label>

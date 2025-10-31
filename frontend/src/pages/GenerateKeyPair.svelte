@@ -31,10 +31,12 @@
     }
 </script>
 
-<div>
-    <label for="force">Force</label>
-    <input bind:checked={force} class="input" id="force" type="checkbox"/>
-</div>
+{#if isGenerated}
+    <div>
+        <label for="force">Force</label>
+        <input bind:checked={force} class="input" id="force" type="checkbox"/>
+    </div>
+{/if}
 
 {#if isGenerated && !force}
     <div>

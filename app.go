@@ -8,12 +8,17 @@ import (
 	"log/slog"
 	"sync"
 
+	ecdsa "github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
+	eddsa "github.com/bnb-chain/tss-lib/v2/eddsa/keygen"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
 	"github.com/nsuiteio/nst-mpc-key-export/service/storage"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nst-mpc-key-export/utility/keyutil"
+	keyutil_ecdsa "github.com/nsuiteio/nst-mpc-key-export/utility/keyutil/ecdsa"
+	keyutil_eddsa "github.com/nsuiteio/nst-mpc-key-export/utility/keyutil/eddsa"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/qrutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
@@ -257,4 +262,88 @@ func (a *App) getStorage(ctx context.Context) (*storage.Storage, error) {
 		a.storage = &storage.Storage{UserData: userData}
 	}
 	return a.storage, nil
+}
+
+func (a *App) deriveECDSA(
+	ctx context.Context,
+	akey secutil.EncryptionKey,
+	index uint32,
+) ([]*ecdsa.LocalPartySaveData, error) {
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "deriveECDSA"),
+		slog.Int("index", int(index)),
+	)
+	strg, err := a.getStorage(ctx)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	keys, ok, err := strg.LoadECDSA(ctx, akey)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	if !ok {
+		err := fmt.Errorf("ECDSA key not found")
+		return nil, errutil.Wrap(err)
+	}
+	logger.Info(
+		"loaded ECDSA key",
+		slog.Int("key_count", len(keys)),
+	)
+	if len(keys) < 1 {
+		err := fmt.Errorf("no ECDSA key found")
+		return nil, errutil.Wrap(err)
+	}
+
+	pubkey, err := keyutil.PubKeyFromShareECDSA(ctx, keys[0])
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	dk := keyutil_ecdsa.NewDeriveKey(pubkey, index)
+	if _, err := dk.UpdateKeyShare(ctx, keys...); err != nil {
+		return nil, errutil.Wrap(err)
+	}
+
+	return keys, nil
+}
+
+func (a *App) deriveEdDSA(
+	ctx context.Context,
+	akey secutil.EncryptionKey,
+	index uint32,
+) ([]*eddsa.LocalPartySaveData, error) {
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "deriveEdDSA"),
+		slog.Int("index", int(index)),
+	)
+	strg, err := a.getStorage(ctx)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	keys, ok, err := strg.LoadEdDSA(ctx, akey)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	if !ok {
+		err := fmt.Errorf("EdDSA key not found")
+		return nil, errutil.Wrap(err)
+	}
+	logger.Info(
+		"loaded EdDSA key",
+		slog.Int("key_count", len(keys)),
+	)
+	if len(keys) < 1 {
+		err := fmt.Errorf("no EdDSA key found")
+		return nil, errutil.Wrap(err)
+	}
+
+	pubkey, err := keyutil.PubKeyFromShareEdDSA(ctx, keys[0])
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	dk := keyutil_eddsa.NewDeriveKey(pubkey, index)
+	if err := dk.UpdateKeyShare(ctx, keys...); err != nil {
+		return nil, errutil.Wrap(err)
+	}
+
+	return keys, nil
 }

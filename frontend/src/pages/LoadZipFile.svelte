@@ -13,7 +13,7 @@
     }
 </script>
 
-<h1>Reconstruct</h1>
+<h1>Load Zip File</h1>
 
 <div class="input-box" id="input">
     <div>

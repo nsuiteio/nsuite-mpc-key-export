@@ -5,7 +5,7 @@
     const menuItems = [
         { label: 'Home', href: '/' },
         { label: 'Generate Key Pair', href: '/generate-key-pair' },
-        { label: 'Reconstruct', href: '/reconstruct' }
+        { label: 'Load Zip file', href: '/load-zip-file' },
     ];
 </script>
 

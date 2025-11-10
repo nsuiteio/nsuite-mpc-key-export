@@ -8,6 +8,7 @@ import (
 
 	"github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
 	"github.com/bnb-chain/tss-lib/v2/tss"
+
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/ziputil"
@@ -45,4 +46,31 @@ func LocalDataFromBytesECDSA(
 		kbxj.SetCurve(tss.S256())
 	}
 	return &result, nil
+}
+
+func LocalDataToBytesECDSA(
+	ctx context.Context,
+	localData *keygen.LocalPartySaveData,
+) ([]byte, error) {
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "StoredData.ToBytes"),
+	)
+	str, err := json.Marshal(localData)
+	if err != nil {
+		logger.Error(
+			"failed to marshal",
+			slog.String("error", err.Error()),
+		)
+		return nil, errutil.Wrap(err)
+	}
+
+	bytes, err := ziputil.GzipBytes(ctx, str)
+	if err != nil {
+		logger.Error(
+			"failed to gzip",
+			slog.String("error", err.Error()),
+		)
+		return nil, errutil.Wrap(err)
+	}
+	return bytes, nil
 }

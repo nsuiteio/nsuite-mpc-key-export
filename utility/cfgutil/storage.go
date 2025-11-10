@@ -11,19 +11,19 @@ import (
 )
 
 type (
-	Storage interface {
+	UserData interface {
 		Save(ctx context.Context, data []byte, path ...string) error
 		Load(ctx context.Context, path ...string) ([]byte, bool, error)
 	}
 
-	secStorageImpl struct {
+	secUserDataImpl struct {
 		basePath string
 	}
 )
 
-func NewSecStorage(ctx context.Context, appName string) (Storage, error) {
+func NewUserData(ctx context.Context, appName string) (UserData, error) {
 	logger := logutil.Get(ctx).With(
-		slog.String("function", "NewSecStorage"),
+		slog.String("function", "NewUserData"),
 	)
 	configDir, err := os.UserConfigDir()
 	if err != nil {
@@ -37,13 +37,13 @@ func NewSecStorage(ctx context.Context, appName string) (Storage, error) {
 		"created app config directory",
 		slog.String("path", appPath),
 	)
-	ss := &secStorageImpl{
+	ss := &secUserDataImpl{
 		basePath: appPath,
 	}
 	return ss, nil
 }
 
-func (ss *secStorageImpl) Save(
+func (ss *secUserDataImpl) Save(
 	ctx context.Context,
 	data []byte,
 	path ...string,
@@ -77,7 +77,7 @@ func (ss *secStorageImpl) Save(
 	return nil
 }
 
-func (ss *secStorageImpl) Load(
+func (ss *secUserDataImpl) Load(
 	ctx context.Context,
 	path ...string,
 ) ([]byte, bool, error) {

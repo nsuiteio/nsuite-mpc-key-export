@@ -28,7 +28,7 @@ type App struct {
 	ctx context.Context
 
 	lockStorage sync.Mutex
-	storage     cfgutil.Storage
+	storage     cfgutil.UserData
 }
 
 // NewApp creates a new App application struct
@@ -228,14 +228,14 @@ const (
 	pathEdDSA         = "eddsa.key"
 )
 
-func (a *App) getStorage(ctx context.Context) (cfgutil.Storage, error) {
+func (a *App) getStorage(ctx context.Context) (cfgutil.UserData, error) {
 	if a.storage != nil {
 		return a.storage, nil
 	}
 	a.lockStorage.Lock()
 	defer a.lockStorage.Unlock()
 	if a.storage == nil {
-		storage, err := cfgutil.NewSecStorage(ctx, a.config.Name)
+		storage, err := cfgutil.NewUserData(ctx, a.config.Name)
 		if err != nil {
 			return nil, errutil.Wrap(err)
 		}

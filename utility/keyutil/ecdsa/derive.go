@@ -15,6 +15,7 @@ import (
 	"github.com/bnb-chain/tss-lib/v2/tss"
 	"github.com/btcsuite/btcd/btcutil/hdkeychain"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	gethCrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/keyutil"
@@ -31,6 +32,18 @@ type (
 		Point     *crypto.ECPoint
 	}
 )
+
+func NewDeriveKey(
+	pubkey *secp256k1.PublicKey,
+	index uint32,
+) *DeriveKey {
+	pkbs := pubkey.SerializeCompressed()
+	chainCode := gethCrypto.Keccak256(gethCrypto.Keccak256(pkbs))
+
+	dk := new(DeriveKey)
+	dk.Init(chainCode, 44, 60, 0, 0, index)
+	return dk
+}
 
 func (dk *DeriveKey) DerivePrvKey(
 	ctx context.Context,

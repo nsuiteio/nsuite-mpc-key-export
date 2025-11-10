@@ -14,6 +14,7 @@ import (
 	"github.com/bnb-chain/tss-lib/v2/eddsa/keygen"
 	"github.com/bnb-chain/tss-lib/v2/tss"
 	"github.com/decred/dcrd/dcrec/edwards/v2"
+	gethCrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/keyutil"
@@ -30,6 +31,18 @@ type (
 		Point     *crypto.ECPoint
 	}
 )
+
+func NewDeriveKey(
+	pubkey *edwards.PublicKey,
+	index uint32,
+) *DeriveKey {
+	pkbs := pubkey.SerializeCompressed()
+	chainCode := gethCrypto.Keccak256(gethCrypto.Keccak256(pkbs))
+
+	dk := new(DeriveKey)
+	dk.Init(chainCode, 44, 501, 0, 0, index)
+	return dk
+}
 
 func (dk *DeriveKey) DerivePubKey(
 	ctx context.Context,

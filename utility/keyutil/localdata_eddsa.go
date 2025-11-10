@@ -8,6 +8,7 @@ import (
 
 	"github.com/bnb-chain/tss-lib/v2/eddsa/keygen"
 	"github.com/bnb-chain/tss-lib/v2/tss"
+	"github.com/decred/dcrd/dcrec/edwards/v2"
 
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
@@ -73,4 +74,20 @@ func LocalDataToBytesEdDSA(
 		return nil, errutil.Wrap(err)
 	}
 	return bytes, nil
+}
+
+func PubKeyFromShareEdDSA(
+	ctx context.Context,
+	share *keygen.LocalPartySaveData,
+) (*edwards.PublicKey, error) {
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "PubKeyFromShareEdDSA"),
+	)
+	logger.Debug("deriving public key from share")
+	pubkey := &edwards.PublicKey{
+		Curve: tss.Edwards(),
+		X:     share.EDDSAPub.X(),
+		Y:     share.EDDSAPub.Y(),
+	}
+	return pubkey, nil
 }

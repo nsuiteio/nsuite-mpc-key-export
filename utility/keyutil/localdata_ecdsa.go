@@ -8,6 +8,7 @@ import (
 
 	"github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
 	"github.com/bnb-chain/tss-lib/v2/tss"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
@@ -73,4 +74,31 @@ func LocalDataToBytesECDSA(
 		return nil, errutil.Wrap(err)
 	}
 	return bytes, nil
+}
+
+func PubKeyFromShareECDSA(
+	ctx context.Context,
+	share *keygen.LocalPartySaveData,
+) (*secp256k1.PublicKey, error) {
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "PubKeyFromShareECDSA"),
+	)
+	logger.Info("deriving public key from share")
+	if share.ECDSAPub == nil {
+		err := fmt.Errorf("share does not contain public key")
+		return nil, errutil.Wrap(err)
+	}
+	ecPub := share.ECDSAPub.ToECDSAPubKey()
+	x := new(secp256k1.FieldVal)
+	if overflow := x.SetByteSlice(ecPub.X.Bytes()); overflow {
+		err := fmt.Errorf("x coordinate is not on curve")
+		return nil, errutil.Wrap(err)
+	}
+	y := new(secp256k1.FieldVal)
+	if overflow := y.SetByteSlice(ecPub.Y.Bytes()); overflow {
+		err := fmt.Errorf("y coordinate is not on curve")
+		return nil, errutil.Wrap(err)
+	}
+	result := secp256k1.NewPublicKey(x, y)
+	return result, nil
 }

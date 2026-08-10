@@ -10,6 +10,10 @@ export function ChooseKeyShares(arg1) {
   return window['go']['main']['App']['ChooseKeyShares'](arg1);
 }
 
+export function DeriveAddress(arg1, arg2, arg3) {
+  return window['go']['main']['App']['DeriveAddress'](arg1, arg2, arg3);
+}
+
 export function GenerateKeyPair(arg1, arg2) {
   return window['go']['main']['App']['GenerateKeyPair'](arg1, arg2);
 }

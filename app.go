@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/nsuiteio/nst-mpc-key-export/service/derive"
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
@@ -173,6 +174,8 @@ func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 	return "data:image/png;base64," + b64, nil
 }
 
+// GetPrivateKey は保存済みの root 鍵から、指定された curve 種別と HDPath index で
+// 子秘密鍵を導出し hex 文字列で返す。鍵素材はログに出力しない。
 func (a *App) GetPrivateKey(
 	password string,
 	keyType string,
@@ -186,38 +189,83 @@ func (a *App) GetPrivateKey(
 	)
 	logger.Info("started")
 
-	akey, err := secutil.NewAESPassword(password)
+	prvBytes, _, err := a.deriveChild(ctx, password, keyType, index)
 	if err != nil {
 		return "", err
 	}
+	logger.Info("derived child private key")
+	return strutil.ToHex(prvBytes), nil
+}
 
-	// TODO: derive by index
+// DeriveAddress は保存済みの root 鍵から、指定された curve 種別と HDPath index で
+// 子アドレス（ECDSA=EVM, EdDSA=Solana）を導出して返す。取り出し前の宛先確認に使う。
+func (a *App) DeriveAddress(
+	password string,
+	keyType string,
+	index int32,
+) (string, error) {
+	ctx := a.ctx
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "DeriveAddress"),
+		slog.String("key_type", keyType),
+		slog.Int("index", int(index)),
+	)
+	logger.Info("started")
+
+	_, address, err := a.deriveChild(ctx, password, keyType, index)
+	if err != nil {
+		return "", err
+	}
+	logger.Info("derived address", slog.String("address", address))
+	return address, nil
+}
+
+// deriveChild は root 鍵を復号し、index で子秘密鍵とアドレスを導出する共通処理。
+func (a *App) deriveChild(
+	ctx context.Context,
+	password string,
+	keyType string,
+	index int32,
+) ([]byte, string, error) {
+	if index < 0 {
+		err := fmt.Errorf("index must be non-negative: %d", index)
+		return nil, "", err
+	}
+
+	akey, err := secutil.NewAESPassword(password)
+	if err != nil {
+		return nil, "", err
+	}
 
 	switch keyType {
 	case "ECDSA":
-		prvkey, ok, err := a.loadECDSA(ctx, akey)
+		root, ok, err := a.loadECDSA(ctx, akey)
 		if err != nil {
-			return "", err
+			return nil, "", err
 		}
 		if !ok {
-			err := fmt.Errorf("ECDSA key not found")
-			return "", err
+			return nil, "", fmt.Errorf("ECDSA key not found")
 		}
-		logger.Info("loaded ECDSA key")
-		return strutil.ToHex(prvkey.Serialize()), nil
+		child, address, err := derive.ECDSAChild(root, uint32(index))
+		if err != nil {
+			return nil, "", errutil.Wrap(err)
+		}
+		return child.Serialize(), address, nil
 	case "EdDSA":
-		prvkey, ok, err := a.loadEdDSA(ctx, akey)
+		root, ok, err := a.loadEdDSA(ctx, akey)
 		if err != nil {
-			return "", err
+			return nil, "", err
 		}
 		if !ok {
-			err := fmt.Errorf("EdDSA key not found")
-			return "", err
+			return nil, "", fmt.Errorf("EdDSA key not found")
 		}
-		logger.Info("loaded EdDSA key")
-		return strutil.ToHex(prvkey.Serialize()), nil
+		child, address, err := derive.EdDSAChild(root, uint32(index))
+		if err != nil {
+			return nil, "", errutil.Wrap(err)
+		}
+		return child.Serialize(), address, nil
 	}
-	return "", fmt.Errorf("unknown key type")
+	return nil, "", fmt.Errorf("unknown key type")
 }
 
 //////// Access to storage

@@ -216,7 +216,8 @@ func (a *App) DeriveAddress(
 	if err != nil {
 		return "", err
 	}
-	logger.Info("derived address", slog.String("address", address))
+	// アドレスはアカウントを識別できる情報のためログに値は出さない。
+	logger.Info("derived address")
 	return address, nil
 }
 

@@ -55,7 +55,10 @@ func TestDeriveECDSAPrivateKey_BIP32Vectors(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		key := NewKey(mustHex(t, bip32RootChainCodeHex), tc.path...)
+		key, err := NewKey(mustHex(t, bip32RootChainCodeHex), tc.path...)
+		if err != nil {
+			t.Fatal(err)
+		}
 		child, err := key.DeriveECDSAPrivateKey(rootPrv)
 		if err != nil {
 			t.Fatalf("path %v: %v", tc.path, err)
@@ -71,7 +74,10 @@ func TestDeriveECDSAPrivateKey_BIP32Vectors(t *testing.T) {
 func TestDeriveECDSAPublicKey_RoundTrip(t *testing.T) {
 	rootPrv := secp256k1.PrivKeyFromBytes(mustHex(t, bip32RootPrvHex))
 	for _, path := range [][]uint32{{0}, {0, 1, 2, 2, 1000000000}} {
-		key := NewKey(mustHex(t, bip32RootChainCodeHex), path...)
+		key, err := NewKey(mustHex(t, bip32RootChainCodeHex), path...)
+		if err != nil {
+			t.Fatal(err)
+		}
 		childPrv, err := key.DeriveECDSAPrivateKey(rootPrv)
 		if err != nil {
 			t.Fatal(err)
@@ -98,7 +104,10 @@ func TestDeriveEdDSAPublicKey_FireblocksVector(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	key := NewKey(mustHex(t, fpubChainCodeHex), 44, 501, 0, 0, 0)
+	key, err := NewKey(mustHex(t, fpubChainCodeHex), 44, 501, 0, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
 	childPub, err := key.DeriveEdDSAPublicKey(rootPub)
 	if err != nil {
 		t.Fatal(err)
@@ -118,7 +127,10 @@ func TestDeriveEdDSAPrivateKey_RoundTrip(t *testing.T) {
 	}
 	rootPub := rootPrv.PubKey()
 	for _, path := range [][]uint32{{44, 501, 0, 0, 0}, {44, 501, 0, 0, 7}} {
-		key := NewKey(bip32ChainCodeForTest(t), path...)
+		key, err := NewKey(bip32ChainCodeForTest(t), path...)
+		if err != nil {
+			t.Fatal(err)
+		}
 		childPrv, err := key.DeriveEdDSAPrivateKey(rootPrv)
 		if err != nil {
 			t.Fatal(err)
@@ -141,7 +153,10 @@ func bip32ChainCodeForTest(t *testing.T) []byte {
 // hardened index（>= 2^31）は拒否されること。
 func TestDerive_HardenedRejected(t *testing.T) {
 	rootPrv := secp256k1.PrivKeyFromBytes(mustHex(t, bip32RootPrvHex))
-	key := NewKey(mustHex(t, bip32RootChainCodeHex), 0x80000000)
+	key, err := NewKey(mustHex(t, bip32RootChainCodeHex), 0x80000000)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := key.DeriveECDSAPrivateKey(rootPrv); err == nil {
 		t.Error("expected error for hardened index")
 	}

@@ -24,7 +24,10 @@ func ECDSAChild(
 	root *secp256k1.PrivateKey, index uint32,
 ) (*secp256k1.PrivateKey, string, error) {
 	chainCode := chainCodeFromPub(root.PubKey().SerializeCompressed())
-	key := NewKey(chainCode, 44, coinTypeETH, 0, 0, index)
+	key, err := NewKey(chainCode, 44, coinTypeETH, 0, 0, index)
+	if err != nil {
+		return nil, "", err
+	}
 	childPrv, err := key.DeriveECDSAPrivateKey(root)
 	if err != nil {
 		return nil, "", err
@@ -38,7 +41,10 @@ func EdDSAChild(
 	root *edwards.PrivateKey, index uint32,
 ) (*edwards.PrivateKey, string, error) {
 	chainCode := chainCodeFromPub(root.PubKey().SerializeCompressed())
-	key := NewKey(chainCode, 44, coinTypeSOL, 0, 0, index)
+	key, err := NewKey(chainCode, 44, coinTypeSOL, 0, 0, index)
+	if err != nil {
+		return nil, "", err
+	}
 	childPrv, err := key.DeriveEdDSAPrivateKey(root)
 	if err != nil {
 		return nil, "", err

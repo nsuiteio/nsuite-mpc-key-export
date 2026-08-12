@@ -33,10 +33,15 @@ type Key struct {
 }
 
 // NewKey は chaincode（32 バイト）と導出パスから Key を作る。
-func NewKey(chainCode []byte, path ...uint32) *Key {
+// chaincode が 32 バイト以外の場合は、黙ってゼロ埋め・切り捨てせずエラーを返す。
+func NewKey(chainCode []byte, path ...uint32) (*Key, error) {
+	if len(chainCode) != 32 {
+		err := fmt.Errorf("invalid chaincode length: %d", len(chainCode))
+		return nil, errutil.Wrap(err)
+	}
 	k := &Key{path: path}
 	copy(k.chainCode[:], chainCode)
-	return k
+	return k, nil
 }
 
 // derived は導出途中の公開鍵点と chaincode を保持する。

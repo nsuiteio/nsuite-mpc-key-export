@@ -71,7 +71,11 @@ func TestGetPrivateKey_ECDSA_DerivesByIndex(t *testing.T) {
 	}
 
 	const index = int32(5)
-	got, err := app.GetPrivateKey(testPassword, "ECDSA", index)
+	addr, err := app.DeriveAddress(testPassword, "ECDSA", index)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := app.GetPrivateKey(testPassword, "ECDSA", index, addr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +105,11 @@ func TestGetPrivateKey_EdDSA_DerivesByIndex(t *testing.T) {
 	}
 
 	const index = int32(3)
-	got, err := app.GetPrivateKey(testPassword, "EdDSA", index)
+	addr, err := app.DeriveAddress(testPassword, "EdDSA", index)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := app.GetPrivateKey(testPassword, "EdDSA", index, addr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +156,48 @@ func TestGetPrivateKey_NegativeIndex(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := app.GetPrivateKey(testPassword, "ECDSA", -1); err == nil {
+	if _, err := app.GetPrivateKey(
+		testPassword, "ECDSA", -1, "",
+	); err == nil {
 		t.Error("expected error for negative index")
+	}
+}
+
+// GetPrivateKey は expectedAddress と導出アドレスが一致しない場合に秘密鍵を
+// 返さない（確認したアドレスと違う index/curve の指定や、確認後に root 鍵が
+// 差し替わった場合の防御）。
+func TestGetPrivateKey_ExpectedAddressMismatch(t *testing.T) {
+	app, akey := newTestApp(t)
+	rootBs := make([]byte, 32)
+	rootBs[31] = 9
+	root := secp256k1.PrivKeyFromBytes(rootBs)
+	if err := app.saveECDSA(app.ctx, akey, root); err != nil {
+		t.Fatal(err)
+	}
+
+	addr, err := app.DeriveAddress(testPassword, "ECDSA", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 別 index のアドレスを期待値として渡す → 拒否
+	if _, err := app.GetPrivateKey(
+		testPassword, "ECDSA", 1, addr,
+	); err == nil {
+		t.Error("expected error for address mismatch")
+	}
+
+	// 確認後に root 鍵が差し替わった場合も拒否される
+	otherBs := make([]byte, 32)
+	otherBs[31] = 10
+	if err := app.saveECDSA(
+		app.ctx, akey, secp256k1.PrivKeyFromBytes(otherBs),
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.GetPrivateKey(
+		testPassword, "ECDSA", 0, addr,
+	); err == nil {
+		t.Error("expected error after root key replacement")
 	}
 }

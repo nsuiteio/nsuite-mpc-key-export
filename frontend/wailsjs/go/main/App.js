@@ -18,6 +18,6 @@ export function GenerateKeyPair(arg1, arg2) {
   return window['go']['main']['App']['GenerateKeyPair'](arg1, arg2);
 }
 
-export function GetPrivateKey(arg1, arg2, arg3) {
-  return window['go']['main']['App']['GetPrivateKey'](arg1, arg2, arg3);
+export function GetPrivateKey(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetPrivateKey'](arg1, arg2, arg3, arg4);
 }

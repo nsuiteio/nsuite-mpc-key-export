@@ -176,10 +176,14 @@ func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 
 // GetPrivateKey は保存済みの root 鍵から、指定された curve 種別と HDPath index で
 // 子秘密鍵を導出し hex 文字列で返す。鍵素材はログに出力しない。
+// expectedAddress には DeriveAddress で確認済みのアドレスを渡す。導出結果の
+// アドレスと一致しない場合（確認と異なる index/curve の指定や、確認後に
+// root 鍵が差し替わった場合）は秘密鍵を返さずエラーにする。
 func (a *App) GetPrivateKey(
 	password string,
 	keyType string,
 	index int32,
+	expectedAddress string,
 ) (string, error) {
 	ctx := a.ctx
 	logger := logutil.Get(ctx).With(
@@ -189,8 +193,14 @@ func (a *App) GetPrivateKey(
 	)
 	logger.Info("started")
 
-	prvBytes, _, err := a.deriveChild(ctx, password, keyType, index)
+	prvBytes, address, err := a.deriveChild(ctx, password, keyType, index)
 	if err != nil {
+		return "", err
+	}
+	if address != expectedAddress {
+		err := fmt.Errorf(
+			"derived address does not match the confirmed address",
+		)
 		return "", err
 	}
 	logger.Info("derived child private key")

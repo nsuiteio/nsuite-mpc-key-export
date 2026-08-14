@@ -9,4 +9,4 @@ export function DeriveAddress(arg1:string,arg2:string,arg3:number):Promise<strin
 
 export function GenerateKeyPair(arg1:string,arg2:boolean):Promise<string>;
 
-export function GetPrivateKey(arg1:string,arg2:string,arg3:number):Promise<string>;
+export function GetPrivateKey(arg1:string,arg2:string,arg3:number,arg4:string):Promise<string>;

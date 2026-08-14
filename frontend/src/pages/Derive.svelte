@@ -21,7 +21,11 @@
     let requestSeq = 0
 
     let clearTimer = null
-    let copiedValue = ''
+    // コピー操作の世代番号。古いコピーの消去処理が新しいコピーの追跡値を
+    // 上書きしないよう、消去関数には値と世代を引数で渡す。
+    let copyGen = 0
+    // ページ破棄時の即時消去に使う「最後にコピーした値」。
+    let lastCopied = ''
 
     async function deriveAddress() {
         reset()
@@ -46,8 +50,11 @@
         revealed = false
         const seq = ++requestSeq
         try {
+            // 確認済みアドレスをバックエンドに渡し、導出結果との一致を
+            // サーバー側でも検証する（確認後の root 鍵差し替え対策）。
             const key = await app.GetPrivateKey(
-                confirmed.password, confirmed.keyType, confirmed.index)
+                confirmed.password, confirmed.keyType, confirmed.index,
+                confirmed.address)
             if (seq !== requestSeq) return
             privateKey = key
         } catch (e) {
@@ -59,12 +66,17 @@
     async function copyPrivateKey() {
         if (!privateKey) return
         clipboardWarning = ''
+        // writeText の待機中に reset 等で privateKey が変わっても消去対象を
+        // 見失わないよう、コピーする値をローカル定数に固定する。
+        const value = privateKey
+        const gen = ++copyGen
         try {
-            await navigator.clipboard.writeText(privateKey)
-            copiedValue = privateKey
+            await navigator.clipboard.writeText(value)
+            lastCopied = value
             copied = true
             if (clearTimer) clearTimeout(clearTimer)
-            clearTimer = setTimeout(clearClipboardIfUnchanged, 20000)
+            clearTimer = setTimeout(
+                () => clearClipboardIfUnchanged(value, gen), 20000)
         } catch (e) {
             error = String(e)
         }
@@ -72,19 +84,22 @@
 
     // コピーした秘密鍵がクリップボードに残っている場合だけ消去する。
     // 利用者が別の内容をコピーしていた場合はそれを壊さない。
-    async function clearClipboardIfUnchanged() {
-        copied = false
+    // 値と世代を引数で受けるため、後続のコピーと状態を共有しない。
+    async function clearClipboardIfUnchanged(value, gen) {
+        if (gen === copyGen) copied = false
         try {
             const current = await navigator.clipboard.readText()
-            if (current === copiedValue) {
+            if (current === value) {
                 await navigator.clipboard.writeText('')
             }
+            if (gen === copyGen) lastCopied = ''
         } catch (e) {
-            clipboardWarning =
-                'クリップボードの自動クリアに失敗しました。' +
-                '手動で別の内容をコピーするなどしてクリアしてください。'
+            if (gen === copyGen) {
+                clipboardWarning =
+                    'クリップボードの自動クリアに失敗しました。' +
+                    '手動で別の内容をコピーするなどしてクリアしてください。'
+            }
         }
-        copiedValue = ''
     }
 
     // 入力（password / curve / index）が変わったら結果を無効化する。
@@ -99,12 +114,20 @@
         requestSeq++
     }
 
-    // ページ離脱時は画面上の秘密情報を破棄する。
+    // ページ離脱時は画面上の秘密情報を破棄し、処理中の応答を無効化する。
+    // コピー済みの秘密鍵が残っていれば、タイマーを待たずに即時消去を試みる。
     onDestroy(() => {
         if (clearTimer) clearTimeout(clearTimer)
+        requestSeq++
+        copyGen++
+        confirmed = null
         privateKey = ''
         password = ''
-        copiedValue = ''
+        if (lastCopied) {
+            const value = lastCopied
+            lastCopied = ''
+            clearClipboardIfUnchanged(value, copyGen).catch(() => {})
+        }
     })
 
     $: masked = privateKey

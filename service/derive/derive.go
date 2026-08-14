@@ -39,7 +39,8 @@ func NewKey(chainCode []byte, path ...uint32) (*Key, error) {
 		err := fmt.Errorf("invalid chaincode length: %d", len(chainCode))
 		return nil, errutil.Wrap(err)
 	}
-	k := &Key{path: path}
+	// 呼び出し元スライスの後続変更に影響されないよう path をコピーする。
+	k := &Key{path: append([]uint32(nil), path...)}
 	copy(k.chainCode[:], chainCode)
 	return k, nil
 }

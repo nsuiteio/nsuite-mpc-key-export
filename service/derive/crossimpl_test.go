@@ -11,6 +11,13 @@ import (
 // の実装で独立に生成した交差検証ベクタ。root 鍵 → chaincode 自己計算 → 固定パス →
 // 最終アドレスまでの全パイプラインが N Suite のアドレス発行実装と一致することを
 // 保証する（本パッケージの実装を期待値生成に使っていない）。
+//
+// ベクタ生成元: nst-core commit e95690686dc34a089eca9ed7abcfa068d327d65a。
+// 導出関連 4 ファイル（derive_ecdsa.go / derive_eddsa.go / keyshare_rootpub.go /
+// keyshare_derivation.go）は nst-core origin/develop
+// (34ad6bf56192d4f3bc134e4bd0525d7daddad782) と同一内容であることを確認済み。
+// EdDSA の公開鍵シリアライズは両実装とも dcrd edwards/v2 の 32 バイト形式
+// （Serialize == SerializeCompressed）。
 func TestECDSAChild_NSuiteCrossImplVector(t *testing.T) {
 	root := secp256k1.PrivKeyFromBytes(mustHex(t, bip32RootPrvHex))
 
@@ -56,6 +63,28 @@ func TestEdDSAChild_NSuiteCrossImplVector(t *testing.T) {
 		if addr != tc.want {
 			t.Errorf("index %d: got %s want %s", tc.index, addr, tc.want)
 		}
+	}
+}
+
+// NewKey は path を内部コピーし、呼び出し元スライスの後続変更に影響されない。
+func TestNewKey_CopiesPath(t *testing.T) {
+	rootPrv := secp256k1.PrivKeyFromBytes(mustHex(t, bip32RootPrvHex))
+	path := []uint32{0}
+	key, err := NewKey(mustHex(t, bip32RootChainCodeHex), path...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := key.DeriveECDSAPrivateKey(rootPrv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path[0] = 1 // 呼び出し元がスライスを書き換えても導出結果は変わらないこと
+	after, err := key.DeriveECDSAPrivateKey(rootPrv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(before.Serialize()) != string(after.Serialize()) {
+		t.Error("NewKey must copy the path slice")
 	}
 }
 

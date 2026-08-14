@@ -5,6 +5,7 @@
     let force = false
     let password
     let qrImage
+    let fingerprint = ''
     let showPopup = false
     let isGenerated = false
 
@@ -19,6 +20,9 @@
     async function genKeyPair() {
         try {
             qrImage = await app.GenerateKeyPair(password, force)
+            // 承認者のモバイルアプリに表示される値と目視照合するための
+            // フィンガープリント（4文字区切り・大文字）。
+            fingerprint = await app.GetKeyPairFingerprint(password)
             showPopup = true
             isGenerated = true
         } catch (e) {
@@ -52,9 +56,15 @@
 
 {#if showPopup}
     <div class="overlay">
-        <button class="btn" on:click={closePopup}>
-            <img alt="QR code" id="qr" src="{qrImage}" width="200" height="200">
-        </button>
+        <div class="popup">
+            <button class="btn" on:click={closePopup}>
+                <img alt="QR code" id="qr" src="{qrImage}" width="200" height="200">
+            </button>
+            <div class="fingerprint">
+                <p>Fingerprint（モバイルアプリの表示と一致することを確認してください）</p>
+                <code>{fingerprint}</code>
+            </div>
+        </div>
     </div>
 {/if}
 
@@ -70,5 +80,30 @@
         justify-content: center;
         align-items: center;
         z-index: 999;
+    }
+
+    .popup {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .fingerprint {
+        max-width: 420px;
+        text-align: center;
+        background-color: rgba(0, 0, 0, 0.7);
+        border-radius: 4px;
+        padding: 0.75rem;
+    }
+
+    .fingerprint p {
+        margin: 0 0 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .fingerprint code {
+        font-family: monospace;
+        word-break: break-all;
     }
 </style>

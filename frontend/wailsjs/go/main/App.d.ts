@@ -7,4 +7,6 @@ export function ChooseKeyShares(arg1:string):Promise<string>;
 
 export function GenerateKeyPair(arg1:string,arg2:boolean):Promise<string>;
 
+export function GetKeyPairFingerprint(arg1:string):Promise<string>;
+
 export function GetPrivateKey(arg1:string,arg2:string,arg3:number):Promise<string>;

@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/nsuiteio/nst-mpc-key-export/service/exportpubkey"
 	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
@@ -164,13 +165,45 @@ func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 		"generated key pair",
 		slog.String("public_key", strutil.ToHex(pubkeyBs)),
 	)
-	png, err := qrutil.GenerateQRCodePNG(pubkeyBs)
+	// QR ペイロードは hex 文字列にする（モバイル側パーサーの期待形式。
+	// 生バイナリはスキャナの文字列経由で不可逆に破損するため不可）。
+	png, err := qrutil.GenerateQRCodePNG(
+		[]byte(exportpubkey.Payload(pubkeyBs)),
+	)
 	if err != nil {
 		return "", err
 	}
 	b64 := base64.StdEncoding.EncodeToString(png)
 
 	return "data:image/png;base64," + b64, nil
+}
+
+// GetKeyPairFingerprint は保存済み公開鍵のフィンガープリント
+// hex(sha256(pubkeyBytes)) を 4 文字区切り・大文字で返す。
+// 承認者のモバイルアプリに表示される値と目視照合するために使う。
+func (a *App) GetKeyPairFingerprint(password string) (string, error) {
+	ctx := a.ctx
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "GetKeyPairFingerprint"),
+	)
+	logger.Info("started")
+
+	akey, err := secutil.NewAESPassword(password)
+	if err != nil {
+		return "", err
+	}
+	privateKey, ok, err := a.loadKeyPair(ctx, akey)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", fmt.Errorf("key pair not found")
+	}
+	pubkeyBs := privateKey.PublicKey().MarshalToBytes()
+	fingerprint := exportpubkey.FormatFingerprint(
+		exportpubkey.Fingerprint(pubkeyBs),
+	)
+	return fingerprint, nil
 }
 
 func (a *App) GetPrivateKey(

@@ -178,6 +178,31 @@ func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 	return "data:image/png;base64," + b64, nil
 }
 
+// GetPublicKeyHex は保存済み公開鍵の hex 文字列（QR ペイロードと同一形式、
+// 0x なし小文字）を返す。カメラが使えない環境（シミュレータ等）で、モバイル側の
+// テキスト入力欄へ貼り付けて受け渡すために使う。
+func (a *App) GetPublicKeyHex(password string) (string, error) {
+	ctx := a.ctx
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "GetPublicKeyHex"),
+	)
+	logger.Info("started")
+
+	akey, err := secutil.NewAESPassword(password)
+	if err != nil {
+		return "", err
+	}
+	privateKey, ok, err := a.loadKeyPair(ctx, akey)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", fmt.Errorf("key pair not found")
+	}
+	pubkeyBs := privateKey.PublicKey().MarshalToBytes()
+	return exportpubkey.Payload(pubkeyBs), nil
+}
+
 // GetKeyPairFingerprint は保存済み公開鍵のフィンガープリント
 // hex(sha256(pubkeyBytes)) を 4 文字区切り・大文字で返す。
 // 承認者のモバイルアプリに表示される値と目視照合するために使う。

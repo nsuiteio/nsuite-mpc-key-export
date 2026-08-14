@@ -6,6 +6,8 @@
     let password
     let qrImage
     let fingerprint = ''
+    let pubkeyHex = ''
+    let pubkeyCopied = false
     let showPopup = false
     let isGenerated = false
 
@@ -23,8 +25,21 @@
             // 承認者のモバイルアプリに表示される値と目視照合するための
             // フィンガープリント（4文字区切り・大文字）。
             fingerprint = await app.GetKeyPairFingerprint(password)
+            // カメラが使えない環境向けに、モバイル側のテキスト入力欄へ
+            // 貼り付けるための公開鍵 hex（QR ペイロードと同一）。
+            pubkeyHex = await app.GetPublicKeyHex(password)
             showPopup = true
             isGenerated = true
+        } catch (e) {
+            console.log(e)
+        }
+    }
+
+    async function copyPublicKeyHex() {
+        if (!pubkeyHex) return
+        try {
+            await navigator.clipboard.writeText(pubkeyHex)
+            pubkeyCopied = true
         } catch (e) {
             console.log(e)
         }
@@ -64,6 +79,9 @@
                 <p>Fingerprint（モバイルアプリの表示と一致することを確認してください）</p>
                 <code>{fingerprint}</code>
             </div>
+            <button class="btn" on:click={copyPublicKeyHex}>
+                {pubkeyCopied ? 'Copied!' : 'Copy public key hex'}
+            </button>
         </div>
     </div>
 {/if}
@@ -104,6 +122,6 @@
 
     .fingerprint code {
         font-family: monospace;
-        word-break: break-all;
+        word-break: keep-all;
     }
 </style>

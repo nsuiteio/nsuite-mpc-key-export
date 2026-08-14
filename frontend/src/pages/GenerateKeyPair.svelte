@@ -8,6 +8,7 @@
     let fingerprint = ''
     let pubkeyHex = ''
     let pubkeyCopied = false
+    let error = ''
     let showPopup = false
     let isGenerated = false
 
@@ -20,6 +21,7 @@
     })
 
     async function genKeyPair() {
+        error = ''
         try {
             qrImage = await app.GenerateKeyPair(password, force)
             // 承認者のモバイルアプリに表示される値と目視照合するための
@@ -31,7 +33,8 @@
             showPopup = true
             isGenerated = true
         } catch (e) {
-            console.log(e)
+            // エラーを画面に表示する（パスワード未入力・鍵ペア重複など）。
+            error = String(e)
         }
     }
 
@@ -69,6 +72,10 @@
     </div>
 {/if}
 
+{#if error}
+    <p class="error">{error}</p>
+{/if}
+
 {#if showPopup}
     <div class="overlay">
         <div class="popup">
@@ -87,6 +94,13 @@
 {/if}
 
 <style>
+    .error {
+        color: #ff6b6b;
+        max-width: 640px;
+        margin: 1rem auto;
+        word-break: break-all;
+    }
+
     .overlay {
         position: fixed;
         top: 0;

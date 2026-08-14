@@ -201,3 +201,47 @@ func TestGetPrivateKey_ExpectedAddressMismatch(t *testing.T) {
 		t.Error("expected error after root key replacement")
 	}
 }
+
+// 誤ったパスワードでは root 鍵を復号できずエラーになる。
+func TestGetPrivateKey_WrongPassword(t *testing.T) {
+	app, akey := newTestApp(t)
+	rootBs := make([]byte, 32)
+	rootBs[31] = 11
+	if err := app.saveECDSA(
+		app.ctx, akey, secp256k1.PrivKeyFromBytes(rootBs),
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.GetPrivateKey(
+		"wrong password", "ECDSA", 0, "",
+	); err == nil {
+		t.Error("expected error for wrong password")
+	}
+}
+
+// root 鍵が未保存の場合はエラーになる。
+func TestGetPrivateKey_KeyNotStored(t *testing.T) {
+	app, _ := newTestApp(t)
+	if _, err := app.GetPrivateKey(
+		testPassword, "ECDSA", 0, "",
+	); err == nil {
+		t.Error("expected error when key is not stored")
+	}
+}
+
+// 未知の keyType は拒否される。
+func TestGetPrivateKey_UnknownKeyType(t *testing.T) {
+	app, akey := newTestApp(t)
+	rootBs := make([]byte, 32)
+	rootBs[31] = 12
+	if err := app.saveECDSA(
+		app.ctx, akey, secp256k1.PrivKeyFromBytes(rootBs),
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.GetPrivateKey(
+		testPassword, "RSA", 0, "",
+	); err == nil {
+		t.Error("expected error for unknown key type")
+	}
+}

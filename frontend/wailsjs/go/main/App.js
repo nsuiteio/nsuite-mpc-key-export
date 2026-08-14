@@ -18,6 +18,14 @@ export function GenerateKeyPair(arg1, arg2) {
   return window['go']['main']['App']['GenerateKeyPair'](arg1, arg2);
 }
 
+export function GetKeyPairFingerprint(arg1) {
+  return window['go']['main']['App']['GetKeyPairFingerprint'](arg1);
+}
+
 export function GetPrivateKey(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetPrivateKey'](arg1, arg2, arg3, arg4);
+}
+
+export function GetPublicKeyHex(arg1) {
+  return window['go']['main']['App']['GetPublicKeyHex'](arg1);
 }

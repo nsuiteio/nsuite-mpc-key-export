@@ -1,11 +1,14 @@
 <script>
     import * as app from '../../wailsjs/go/main/App.js'
     import {onMount} from "svelte";
+    import PubkeyPopup from '../components/PubkeyPopup.svelte'
 
     let password
-    let qrImage
+    let keyPair = null
     let showPopup = false
     let isGenerated = false
+    let generating = false
+    let error = ''
 
     onMount(async () => {
         try {
@@ -16,12 +19,20 @@
     })
 
     async function genKeyPair() {
+        if (generating) return
+        generating = true
+        error = ''
         try {
-            qrImage = await app.GenerateKeyPair(password, true)
+            // QR・フィンガープリント・公開鍵 hex は同一鍵のスナップショット
+            // として単一レスポンスで受け取る。
+            keyPair = await app.GenerateKeyPair(password, true)
             showPopup = true
             isGenerated = true
         } catch (e) {
-            console.log(e)
+            // エラーを画面に表示する（パスワード未入力など）。
+            error = String(e)
+        } finally {
+            generating = false
         }
     }
 
@@ -40,30 +51,30 @@
             <label for="password">Password</label>
             <input autocomplete="off" bind:value={password} class="input" id="password" type="password"/>
         </div>
-        <button class="btn" on:click={genKeyPair}>Generate Key Pair</button>
-    </div>
-{/if}
-
-{#if showPopup}
-    <div class="overlay">
-        <button class="btn" on:click={closePopup}>
-            <img alt="QR code" id="qr" src="{qrImage}" width="200" height="200">
+        <button class="btn" disabled={generating} on:click={genKeyPair}>
+            {generating ? 'Generating...' : 'Generate Key Pair'}
         </button>
     </div>
 {/if}
 
+{#if error}
+    <p class="error">{error}</p>
+{/if}
+
+{#if showPopup && keyPair}
+    <PubkeyPopup
+        qrImage={keyPair.qrImage}
+        fingerprint={keyPair.fingerprint}
+        pubkeyHex={keyPair.publicKeyHex}
+        onClose={closePopup}
+    />
+{/if}
 
 <style>
-    .overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 999;
+    .error {
+        color: #ff6b6b;
+        max-width: 640px;
+        margin: 1rem auto;
+        word-break: break-all;
     }
 </style>

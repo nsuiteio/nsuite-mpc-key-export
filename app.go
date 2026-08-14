@@ -196,7 +196,7 @@ func (a *App) GenerateKeyPair(
 }
 
 // GetPublicKeyHex は保存済み公開鍵の hex 文字列（QR ペイロードと同一形式、
-// 0x なし小文字）を返す。カメラが使えない環境（シミュレータ等）で、モバイル側の
+// 0x なし大文字）を返す。カメラが使えない環境（シミュレータ等）で、モバイル側の
 // テキスト入力欄へ貼り付けて受け渡すために使う。
 func (a *App) GetPublicKeyHex(password string) (string, error) {
 	ctx := a.ctx

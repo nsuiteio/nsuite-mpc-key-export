@@ -1,0 +1,8 @@
+# Wails / Go build artifacts
+/build/bin/
+frontend/dist/
+frontend/node_modules/
+
+# Editor / OS
+.DS_Store
+*.swp

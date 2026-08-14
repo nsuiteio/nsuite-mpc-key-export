@@ -78,6 +78,11 @@ func (a *App) ChooseKeyShares(password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// ファイル選択ダイアログのキャンセルは空文字で返る。エラーではなく
+	// 「何もしなかった」として空文字を返し、フロント側で無視させる。
+	if file == "" {
+		return "", nil
+	}
 	keySharesECDSA, keySharesEdDSA, err := reconstruct.LoadFromZip(
 		ctx,
 		privateKey,
@@ -247,6 +252,42 @@ func (a *App) GetKeyPairFingerprint(password string) (string, error) {
 		exportpubkey.Fingerprint(pubkeyBs),
 	)
 	return fingerprint, nil
+}
+
+// KeyPairInfo は保存済み鍵ペアの公開鍵情報。単一の鍵読み込みから生成される。
+type KeyPairInfo struct {
+	Fingerprint  string `json:"fingerprint"`
+	PublicKeyHex string `json:"publicKeyHex"`
+}
+
+// GetKeyPairInfo はフィンガープリントと公開鍵 hex を単一スナップショットで返す。
+// 別 API での読み直しは、再生成と並行した場合に別々の鍵の値を組み合わせて
+// 表示する余地があるため、この API で一括取得する。
+func (a *App) GetKeyPairInfo(password string) (*KeyPairInfo, error) {
+	ctx := a.ctx
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "GetKeyPairInfo"),
+	)
+	logger.Info("started")
+
+	akey, err := secutil.NewAESPassword(password)
+	if err != nil {
+		return nil, err
+	}
+	privateKey, ok, err := a.loadKeyPair(ctx, akey)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("key pair not found")
+	}
+	pubkeyBs := privateKey.PublicKey().MarshalToBytes()
+	return &KeyPairInfo{
+		Fingerprint: exportpubkey.FormatFingerprint(
+			exportpubkey.Fingerprint(pubkeyBs),
+		),
+		PublicKeyHex: exportpubkey.Payload(pubkeyBs),
+	}, nil
 }
 
 // GetPrivateKey は保存済みの root 鍵から、指定された curve 種別と HDPath index で

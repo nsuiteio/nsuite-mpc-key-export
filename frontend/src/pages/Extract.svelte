@@ -1,6 +1,10 @@
 <script>
     import {onDestroy} from 'svelte'
     import * as app from '../../wailsjs/go/main/App.js'
+    import {
+        ClipboardGetText,
+        ClipboardSetText,
+    } from '../../wailsjs/runtime/runtime.js'
 
     // ツール共通のパスワード。Step 1（zip 復号）と Step 2（秘密鍵取り出し）
     // の両方で使う。
@@ -42,7 +46,10 @@
         restoring = true
         restoreError = ''
         try {
-            await app.ChooseKeyShares(password)
+            // ファイル選択ダイアログをキャンセルした場合は空文字が返る。
+            // その場合は何もせず Step 1 に留まる（エラー表示もしない）。
+            const result = await app.ChooseKeyShares(password)
+            if (result !== 'OK') return
             restored = true
             step = 2
         } catch (e) {
@@ -104,7 +111,11 @@
         const value = privateKey
         const gen = ++copyGen
         try {
-            await navigator.clipboard.writeText(value)
+            // WebView の navigator.clipboard は環境により使えないため、
+            // Wails ランタイムのクリップボード API を使う（読み書き統一。
+            // 書き込みだけ成功して自動消去が失敗する片肺状態を防ぐ）。
+            const ok = await ClipboardSetText(value)
+            if (ok === false) throw new Error('clipboard write failed')
             lastCopied = value
             copied = true
             if (clearTimer) clearTimeout(clearTimer)
@@ -121,9 +132,10 @@
     async function clearClipboardIfUnchanged(value, gen) {
         if (gen === copyGen) copied = false
         try {
-            const current = await navigator.clipboard.readText()
+            const current = await ClipboardGetText()
             if (current === value) {
-                await navigator.clipboard.writeText('')
+                const ok = await ClipboardSetText('')
+                if (ok === false) throw new Error('clipboard clear failed')
             }
             if (gen === copyGen) lastCopied = ''
         } catch (e) {
@@ -166,6 +178,11 @@
     $: masked = privateKey
         ? privateKey.slice(0, 6) + '…'.repeat(4) + privateKey.slice(-4)
         : ''
+
+    // HDPath index は非負整数のみ許可（空値・負数・小数は導出ボタンを無効化。
+    // バックエンドでも index < 0 は拒否されるが、誤操作を入力段階で防ぐ）。
+    $: indexValid = index !== '' && index !== null &&
+        Number.isInteger(Number(index)) && Number(index) >= 0
 </script>
 
 <div class="flex flex-col gap-6">
@@ -299,10 +316,16 @@
             <button
                 class="mt-4 cursor-pointer rounded-lg bg-brand-main px-5 py-2
                        text-sm font-bold text-fore-white transition
-                       hover:bg-brand-dark"
-                on:click={deriveAddress}>
+                       hover:bg-brand-dark disabled:cursor-not-allowed
+                       disabled:opacity-50"
+                disabled={!indexValid} on:click={deriveAddress}>
                 アドレスを導出する
             </button>
+            {#if !indexValid}
+                <p class="mt-2 text-xs text-critical-main">
+                    HDPath index には 0 以上の整数を入力してください。
+                </p>
+            {/if}
 
             {#if confirmed}
                 <div class="mt-4 rounded-md bg-back-lightGray p-3">

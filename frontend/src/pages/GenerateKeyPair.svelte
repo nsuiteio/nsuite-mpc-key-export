@@ -13,11 +13,16 @@
 
     // 生成済み鍵ペアの公開鍵情報の再表示用。
     let viewPassword = ''
-    let viewInfo = null // { fingerprint, pubkeyHex }
+    let viewInfo = null // { fingerprint, publicKeyHex }
+    let viewLoading = false
     let viewError = ''
     let copied = false
+    // 古い非同期応答が新しい結果を上書きしないためのリクエスト連番。
+    let viewSeq = 0
 
-    // 再生成（危険操作）用。
+    // 再生成（危険操作）用。初回生成のパスワードとは分離し、
+    // 既存値の意図しない再利用を防ぐ。
+    let regenPassword = ''
     let regenAcknowledged = false
 
     onMount(async () => {
@@ -29,17 +34,24 @@
     })
 
     async function genKeyPair(force) {
-        if (generating) return
+        if (generating || viewLoading) return
         generating = true
         error = ''
+        // 呼び出し時点の値に固定し、入力欄の後からの変更に影響されない。
+        const pw = force ? regenPassword : password
         try {
             // QR・フィンガープリント・公開鍵 hex は同一鍵のスナップショット
             // として単一レスポンスで受け取る。
-            keyPair = await app.GenerateKeyPair(password, force)
+            keyPair = await app.GenerateKeyPair(pw, force)
             showPopup = true
             isGenerated = true
             viewInfo = null
+            viewSeq++
             regenAcknowledged = false
+            // 成功後は機密値を画面上に残さない。
+            password = ''
+            regenPassword = ''
+            viewPassword = ''
         } catch (e) {
             // エラーを画面に表示する（パスワード未入力・鍵ペア重複など）。
             error = String(e)
@@ -49,16 +61,25 @@
     }
 
     async function showPubkeyInfo() {
+        if (generating || viewLoading) return
+        viewLoading = true
         viewError = ''
         viewInfo = null
         copied = false
+        const seq = ++viewSeq
         try {
-            const fingerprint = await app.GetKeyPairFingerprint(viewPassword)
-            const pubkeyHex = await app.GetPublicKeyHex(viewPassword)
-            viewInfo = {fingerprint, pubkeyHex}
+            // フィンガープリントと公開鍵 hex は単一 API で同一鍵の
+            // スナップショットとして受け取る（再生成との競合対策）。
+            const info = await app.GetKeyPairInfo(viewPassword)
+            if (seq !== viewSeq) return // 古い応答は捨てる
+            viewInfo = info
+            viewPassword = '' // 成功後は機密値を残さない
         } catch (e) {
+            if (seq !== viewSeq) return
             // パスワード誤りなどはここに出る。
             viewError = String(e)
+        } finally {
+            viewLoading = false
         }
     }
 
@@ -67,7 +88,7 @@
         try {
             // WebView の navigator.clipboard は環境により使えないため、
             // Wails ランタイムのクリップボード API を使う。
-            const ok = await ClipboardSetText(viewInfo.pubkeyHex)
+            const ok = await ClipboardSetText(viewInfo.publicKeyHex)
             if (ok === false) throw new Error('clipboard write failed')
             copied = true
         } catch (e) {
@@ -144,9 +165,11 @@
                 <button
                     class="cursor-pointer rounded-lg bg-brand-main px-4 py-2
                            text-sm font-bold text-fore-white transition
-                           hover:bg-brand-dark"
+                           hover:bg-brand-dark disabled:cursor-not-allowed
+                           disabled:opacity-50"
+                    disabled={generating || viewLoading}
                     on:click={showPubkeyInfo}>
-                    表示する
+                    {viewLoading ? '取得中...' : '表示する'}
                 </button>
             </div>
             {#if viewInfo}
@@ -158,7 +181,7 @@
                     <div class="mt-3 text-xs font-bold text-fore-gray">
                         公開鍵（hex）
                     </div>
-                    <code class="break-all text-xs">{viewInfo.pubkeyHex}</code>
+                    <code class="break-all text-xs">{viewInfo.publicKeyHex}</code>
                     <div class="mt-2">
                         <button
                             class="cursor-pointer rounded-md border
@@ -199,7 +222,7 @@
                        for="regen-password">
                     新しいパスワード
                 </label>
-                <input autocomplete="off" bind:value={password}
+                <input autocomplete="off" bind:value={regenPassword}
                        class="w-full rounded-md border border-fore-line
                               bg-fore-white px-3 py-2 text-sm
                               focus:border-critical-main focus:outline-none"
@@ -210,7 +233,7 @@
                        py-2 text-sm font-bold text-fore-white transition
                        hover:bg-critical-dark disabled:cursor-not-allowed
                        disabled:opacity-50"
-                disabled={!regenAcknowledged || generating}
+                disabled={!regenAcknowledged || generating || viewLoading}
                 on:click={() => genKeyPair(true)}>
                 {generating ? '生成中...' : '鍵ペアを再生成する'}
             </button>

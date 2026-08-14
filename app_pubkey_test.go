@@ -146,3 +146,55 @@ func TestGetPublicKeyHex(t *testing.T) {
 		t.Errorf("got %q want %q", got, want)
 	}
 }
+
+// GetKeyPairInfo はフィンガープリントと公開鍵 hex を単一の鍵読み込みから
+// 返すこと（別 API の読み直しによる鍵不一致スナップショットを構造的に防ぐ）。
+func TestGetKeyPairInfo(t *testing.T) {
+	app := &App{
+		config:  &cfgutil.WailsJson{Name: "test"},
+		ctx:     context.Background(),
+		storage: newMapStorage(),
+	}
+	const password = "correct horse battery staple"
+
+	if _, err := app.GenerateKeyPair(password, false); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := app.GetKeyPairInfo(password)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// 保存された鍵ペアから期待値を独立に計算する。
+	akey, err := secutil.NewAESPassword(password)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prv, ok, err := app.loadKeyPair(app.ctx, akey)
+	if err != nil || !ok {
+		t.Fatalf("keypair not stored: ok=%v err=%v", ok, err)
+	}
+	pubkeyBs := prv.PublicKey().MarshalToBytes()
+	if want := exportpubkey.Payload(pubkeyBs); got.PublicKeyHex != want {
+		t.Errorf("publicKeyHex: got %q want %q", got.PublicKeyHex, want)
+	}
+	wantFp := exportpubkey.FormatFingerprint(
+		exportpubkey.Fingerprint(pubkeyBs),
+	)
+	if got.Fingerprint != wantFp {
+		t.Errorf("fingerprint: got %q want %q", got.Fingerprint, wantFp)
+	}
+}
+
+// GetKeyPairInfo は鍵ペア未生成の場合エラーを返すこと。
+func TestGetKeyPairInfo_NotFound(t *testing.T) {
+	app := &App{
+		config:  &cfgutil.WailsJson{Name: "test"},
+		ctx:     context.Background(),
+		storage: newMapStorage(),
+	}
+	if _, err := app.GetKeyPairInfo("pw"); err == nil {
+		t.Error("expected error for missing key pair")
+	}
+}

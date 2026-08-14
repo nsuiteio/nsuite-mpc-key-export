@@ -1,4 +1,5 @@
 <script>
+    import {onMount} from 'svelte'
     import {ClipboardSetText} from '../../wailsjs/runtime/runtime.js'
 
     // GenerateKeyPair の単一レスポンス（qrImage / fingerprint / publicKeyHex）。
@@ -29,9 +30,23 @@
     // 「コピーしました」は現在表示中の公開鍵をコピーした場合のみ表示する
     // （鍵を再生成した後に古いコピー状態を引き継がない）。
     $: copied = copiedValue !== '' && copiedValue === pubkeyHex
+
+    // キーボード操作対応: 表示時に閉じるボタンへフォーカスし、
+    // Escape キーで閉じられるようにする。
+    let closeButton
+    onMount(() => {
+        closeButton?.focus()
+    })
+
+    function handleKeydown(event) {
+        if (event.key === 'Escape') onClose()
+    }
 </script>
 
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-fore-black/50">
+<svelte:window on:keydown={handleKeydown}/>
+
+<div role="dialog" aria-modal="true" aria-label="鍵ペアの生成結果"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-fore-black/50">
     <div class="mx-4 flex max-w-md flex-col items-center gap-4 rounded-xl
                 bg-fore-white p-6 shadow-lg">
         <h3 class="m-0 text-base font-bold text-fore-black">
@@ -59,6 +74,7 @@
                 {copied ? 'コピーしました' : '公開鍵 hex をコピー'}
             </button>
             <button
+                bind:this={closeButton}
                 class="cursor-pointer rounded-lg bg-brand-main px-4 py-2
                        text-sm font-bold text-fore-white hover:bg-brand-dark"
                 on:click={onClose}>

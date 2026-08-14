@@ -13,12 +13,13 @@ import (
 )
 
 // Payload は公開鍵バイト列（[keyType 1バイト] + PKCS1 DER）を QR コードに
-// 載せるための hex 文字列にする。0x なし・小文字（モバイル側は 0x 任意・
-// 大文字小文字不問のため、QR 容量が最小になる形式を選ぶ）。
+// 載せるための hex 文字列にする。0x なし・大文字（モバイル側は 0x 任意・
+// 大文字小文字不問。大文字 hex は QR の英数字モード（5.5bit/文字）に乗る
+// ため、バイトモード（8bit/文字）になる小文字より QR 容量が小さくなる）。
 // 生バイナリを QR の文字列ペイロードにすると、スキャナ側の JS string 経由で
 // 不正 UTF-8 が U+FFFD に置換され不可逆に破損するため、必ず hex を使う。
 func Payload(pubkeyBytes []byte) string {
-	return hex.EncodeToString(pubkeyBytes)
+	return strings.ToUpper(hex.EncodeToString(pubkeyBytes))
 }
 
 // Fingerprint は公開鍵バイト列のフィンガープリント hex(sha256(pubkeyBytes))

@@ -129,7 +129,17 @@ func (a *App) CheckKeyPair() (bool, error) {
 	return ok, nil
 }
 
-func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
+// GeneratedKeyPair は鍵ペア生成結果。すべて同一の公開鍵から生成される。
+type GeneratedKeyPair struct {
+	QRImage      string `json:"qrImage"`
+	Fingerprint  string `json:"fingerprint"`
+	PublicKeyHex string `json:"publicKeyHex"`
+}
+
+func (a *App) GenerateKeyPair(
+	password string,
+	force bool,
+) (*GeneratedKeyPair, error) {
 	ctx := a.ctx
 	logger := logutil.Get(ctx).With(
 		slog.String("function", "GenerateKeyPair"),
@@ -137,14 +147,14 @@ func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 
 	akey, err := secutil.NewAESPassword(password)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if !force {
 		if _, ok, err := a.loadKeyPair(ctx, akey); err != nil {
-			return "", err
+			return nil, err
 		} else if ok {
 			err := fmt.Errorf("key pair already exists")
-			return "", err
+			return nil, err
 		}
 	}
 
@@ -153,11 +163,11 @@ func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 		secutil.EncryptionKeyPairTypeRSA,
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if err := a.saveKeyPair(ctx, akey, privateKey); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	pubkeyBs := privateKey.PublicKey().MarshalToBytes()
@@ -165,17 +175,24 @@ func (a *App) GenerateKeyPair(password string, force bool) (string, error) {
 		"generated key pair",
 		slog.String("public_key", strutil.ToHex(pubkeyBs)),
 	)
+	// QR・フィンガープリント・公開鍵 hex は同一の pubkeyBs から生成し、
+	// 単一レスポンスで返す（別 API の読み直しによる鍵不一致を防ぐ）。
 	// QR ペイロードは hex 文字列にする（モバイル側パーサーの期待形式。
 	// 生バイナリはスキャナの文字列経由で不可逆に破損するため不可）。
-	png, err := qrutil.GenerateQRCodePNG(
-		[]byte(exportpubkey.Payload(pubkeyBs)),
-	)
+	payload := exportpubkey.Payload(pubkeyBs)
+	png, err := qrutil.GenerateQRCodePNG([]byte(payload))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	b64 := base64.StdEncoding.EncodeToString(png)
 
-	return "data:image/png;base64," + b64, nil
+	return &GeneratedKeyPair{
+		QRImage: "data:image/png;base64," + b64,
+		Fingerprint: exportpubkey.FormatFingerprint(
+			exportpubkey.Fingerprint(pubkeyBs),
+		),
+		PublicKeyHex: payload,
+	}, nil
 }
 
 // GetPublicKeyHex は保存済み公開鍵の hex 文字列（QR ペイロードと同一形式、

@@ -11,8 +11,8 @@ import (
 
 // QR ペイロードはモバイル側パーサー（nst-mobile-app lib/exportPubkey.ts
 // parseExportPubkey）の受け入れ条件を満たすこと:
-// hex 文字列（0x なし小文字）・デコード後 [keyType 0x00][DER SEQUENCE 0x30]・
-// 32〜4096 バイト。
+// hex 文字列（0x なし大文字。QR の英数字モードに乗り容量が最小になる）・
+// デコード後 [keyType 0x00][DER SEQUENCE 0x30]・32〜4096 バイト。
 func TestPayload_MeetsMobileParserContract(t *testing.T) {
 	ctx := context.Background()
 	prv, err := secutil.GenerateEncryptionKeyPair(
@@ -25,8 +25,8 @@ func TestPayload_MeetsMobileParserContract(t *testing.T) {
 
 	payload := Payload(pubkeyBs)
 
-	if !regexp.MustCompile(`^[0-9a-f]+$`).MatchString(payload) {
-		t.Errorf("payload must be lowercase hex without 0x: %q", payload)
+	if !regexp.MustCompile(`^[0-9A-F]+$`).MatchString(payload) {
+		t.Errorf("payload must be uppercase hex without 0x: %q", payload)
 	}
 	decoded, err := hex.DecodeString(payload)
 	if err != nil {

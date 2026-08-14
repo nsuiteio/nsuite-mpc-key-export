@@ -33,6 +33,47 @@ func (m *mapStorage) Load(
 	return bs, ok, nil
 }
 
+// GenerateKeyPair は QR・フィンガープリント・公開鍵 hex を同一の鍵から
+// 生成した単一スナップショットとして返すこと（別 API の読み直しによる
+// 鍵不一致を構造的に防ぐ）。
+func TestGenerateKeyPair_SingleSnapshot(t *testing.T) {
+	app := &App{
+		config:  &cfgutil.WailsJson{Name: "test"},
+		ctx:     context.Background(),
+		storage: newMapStorage(),
+	}
+	const password = "correct horse battery staple"
+
+	res, err := app.GenerateKeyPair(password, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(res.QRImage, "data:image/png;base64,") {
+		t.Errorf("unexpected QR image format: %.40s", res.QRImage)
+	}
+
+	// 保存された鍵ペアから期待値を独立に計算し、全フィールドが
+	// 同一の公開鍵に由来することを確認する。
+	akey, err := secutil.NewAESPassword(password)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prv, ok, err := app.loadKeyPair(app.ctx, akey)
+	if err != nil || !ok {
+		t.Fatalf("keypair not stored: ok=%v err=%v", ok, err)
+	}
+	pubkeyBs := prv.PublicKey().MarshalToBytes()
+	if want := exportpubkey.Payload(pubkeyBs); res.PublicKeyHex != want {
+		t.Errorf("publicKeyHex: got %q want %q", res.PublicKeyHex, want)
+	}
+	wantFp := exportpubkey.FormatFingerprint(
+		exportpubkey.Fingerprint(pubkeyBs),
+	)
+	if res.Fingerprint != wantFp {
+		t.Errorf("fingerprint: got %q want %q", res.Fingerprint, wantFp)
+	}
+}
+
 // GetKeyPairFingerprint は保存済み公開鍵のフィンガープリント
 // （4 文字区切り・大文字。モバイル側の表示と同一）を返すこと。
 func TestGetKeyPairFingerprint(t *testing.T) {

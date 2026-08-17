@@ -1,8 +1,12 @@
 # Wails / Go build artifacts
-/build/bin/
-frontend/dist/
-frontend/node_modules/
+apps/*/build/bin/
+apps/*/frontend/dist/
+apps/*/frontend/node_modules/
 
 # Editor / OS
 .DS_Store
 *.swp
+
+# Tooling artifacts
+.playwright-mcp/
+.task/

@@ -1,0 +1,86 @@
+package keypairfile
+
+import (
+	"bytes"
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
+)
+
+func genKeyPair(t *testing.T) secutil.EncryptionPrivateKey {
+	t.Helper()
+	prv, err := secutil.GenerateEncryptionKeyPair(
+		context.Background(),
+		secutil.EncryptionKeyPairTypeRSA,
+	)
+	require.NoError(t, err)
+	return prv
+}
+
+func TestEncodeDecode(t *testing.T) {
+	t.Run("正常系_ラウンドトリップで同一鍵が復元される", func(t *testing.T) {
+		prv := genKeyPair(t)
+
+		encoded := Encode(prv)
+		decoded, err := Decode(encoded)
+		require.NoError(t, err)
+
+		// 公開鍵バイト列の一致で同一鍵であることを確認する
+		assert.Equal(
+			t,
+			prv.PublicKey().MarshalToBytes(),
+			decoded.PublicKey().MarshalToBytes(),
+		)
+
+		// 復元した秘密鍵で実際に復号できることを確認する
+		plain := []byte("mpc key export test payload")
+		cipher, err := prv.PublicKey().Encrypt(plain)
+		require.NoError(t, err)
+		got, err := decoded.Decrypt(cipher)
+		require.NoError(t, err)
+		assert.Equal(t, plain, got)
+	})
+
+	t.Run("正常系_エンコード結果はマジックバイトで始まる", func(t *testing.T) {
+		prv := genKeyPair(t)
+		encoded := Encode(prv)
+		assert.True(t, bytes.HasPrefix(encoded, []byte(Magic)))
+	})
+
+	t.Run("異常系_マジック不一致はErrNotKeyPairFile", func(t *testing.T) {
+		// zipファイルの先頭バイト列（PK..）を模した取り違え入力
+		zipLike := append(
+			[]byte{0x50, 0x4B, 0x03, 0x04},
+			bytes.Repeat([]byte{0x00}, 32)...,
+		)
+		_, err := Decode(zipLike)
+		assert.ErrorIs(t, err, ErrNotKeyPairFile)
+	})
+
+	t.Run("異常系_短すぎる入力はErrNotKeyPairFile", func(t *testing.T) {
+		_, err := Decode([]byte("NST"))
+		assert.ErrorIs(t, err, ErrNotKeyPairFile)
+	})
+
+	t.Run("異常系_未対応バージョンはErrUnsupportedVersion", func(t *testing.T) {
+		prv := genKeyPair(t)
+		encoded := Encode(prv)
+		encoded[len(Magic)] = 0xFF
+		_, err := Decode(encoded)
+		assert.ErrorIs(t, err, ErrUnsupportedVersion)
+	})
+
+	t.Run("異常系_ペイロード破損はエラー", func(t *testing.T) {
+		prv := genKeyPair(t)
+		encoded := Encode(prv)
+		// ヘッダは保持しペイロードを破壊する
+		corrupt := encoded[:len(Magic)+1]
+		corrupt = append(corrupt, 0xDE, 0xAD)
+		_, err := Decode(corrupt)
+		assert.Error(t, err)
+	})
+}

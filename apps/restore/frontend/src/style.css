@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* N Suite ブランドパレット（nst-mobile-app の tailwind.config.js より） */
+@theme {
+    --color-brand-main: #1AB0E9;
+    --color-brand-light: #1AB0E966;
+    --color-brand-dark: #069BD3;
+
+    --color-fore-black: #1F2937;
+    --color-fore-gray: #77838F;
+    --color-fore-lightGray: #B7C5D3;
+    --color-fore-white: #FFFFFF;
+    --color-fore-line: #E7EAF3;
+
+    --color-back-lightGray: #F7F9F9;
+
+    --color-critical-main: #F24D4D;
+    --color-critical-light: #FEEDED;
+    --color-critical-dark: #D01919;
+
+    --color-warning-main: #F4AF5E;
+    --color-warning-light: #FFF3E4;
+
+    --color-informational-main: #18A0FB;
+    --color-informational-light: #D8EFFF;
+
+    --color-success-main: #00C9A7;
+    --color-success-light: #E9FFFB;
+
+    --font-sans: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Roboto", "Helvetica Neue", sans-serif;
+}
+
+@font-face {
+    font-family: "Nunito";
+    font-style: normal;
+    font-weight: 400;
+    src: local(""),
+    url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
+}
+
+html {
+    background-color: var(--color-back-lightGray);
+    color: var(--color-fore-black);
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-sans);
+}

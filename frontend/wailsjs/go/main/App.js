@@ -22,6 +22,10 @@ export function GetKeyPairFingerprint(arg1) {
   return window['go']['main']['App']['GetKeyPairFingerprint'](arg1);
 }
 
+export function GetKeyPairInfo(arg1) {
+  return window['go']['main']['App']['GetKeyPairInfo'](arg1);
+}
+
 export function GetPrivateKey(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetPrivateKey'](arg1, arg2, arg3, arg4);
 }

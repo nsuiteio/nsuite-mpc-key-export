@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"sync"
 
 	"github.com/decred/dcrd/dcrec/edwards/v2"
@@ -41,6 +40,10 @@ type App struct {
 	keyPair   secutil.EncryptionPrivateKey
 	rootECDSA *secp256k1.PrivateKey
 	rootEdDSA *edwards.PrivateKey
+	// generation はキーペアを選び直すたびに増える世代番号。
+	// 進行中のzip復元がキーペア変更前のセッションへ結果を書き戻す
+	// レースを防ぐ。
+	generation uint64
 }
 
 // NewApp creates a new App application struct
@@ -60,9 +63,8 @@ func (a *App) startup(ctx context.Context) {
 // KeyPairInfo は選択したキーペアファイルの公開鍵情報。
 // フィンガープリントを鍵ペア生成時の記録と目視照合するために返す。
 type KeyPairInfo struct {
-	Fingerprint  string `json:"fingerprint"`
-	PublicKeyHex string `json:"publicKeyHex"`
-	FilePath     string `json:"filePath"`
+	Fingerprint string `json:"fingerprint"`
+	FilePath    string `json:"filePath"`
 }
 
 // ChooseKeyPairFile は担当者Aのキーペアファイルを選択して読み込む。
@@ -94,11 +96,7 @@ func (a *App) ChooseKeyPairFile() (*KeyPairInfo, error) {
 		return nil, nil
 	}
 
-	bs, err := os.ReadFile(path)
-	if err != nil {
-		return nil, errutil.Wrap(err)
-	}
-	privateKey, err := keypairfile.Decode(bs)
+	privateKey, err := keypairfile.Load(path)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +105,7 @@ func (a *App) ChooseKeyPairFile() (*KeyPairInfo, error) {
 	a.keyPair = privateKey
 	a.rootECDSA = nil
 	a.rootEdDSA = nil
+	a.generation++
 	a.lock.Unlock()
 
 	logger.Info(
@@ -119,8 +118,7 @@ func (a *App) ChooseKeyPairFile() (*KeyPairInfo, error) {
 		Fingerprint: exportpubkey.FormatFingerprint(
 			exportpubkey.Fingerprint(pubkeyBs),
 		),
-		PublicKeyHex: exportpubkey.Payload(pubkeyBs),
-		FilePath:     path,
+		FilePath: path,
 	}, nil
 }
 
@@ -134,6 +132,7 @@ func (a *App) ChooseKeyShares() (string, error) {
 
 	a.lock.Lock()
 	keyPair := a.keyPair
+	generation := a.generation
 	a.lock.Unlock()
 	if keyPair == nil {
 		err := fmt.Errorf("key pair file is not selected")
@@ -159,6 +158,17 @@ func (a *App) ChooseKeyShares() (string, error) {
 	if file == "" {
 		return "", nil
 	}
+
+	// 新しいzipを選択した時点で既存のroot鍵を破棄する。以降の復元が
+	// 失敗した場合に、前回復元した別のzip由来の鍵を取り出せてしまう
+	// 状態を残さないため。
+	a.lock.Lock()
+	if a.generation == generation {
+		a.rootECDSA = nil
+		a.rootEdDSA = nil
+	}
+	a.lock.Unlock()
+
 	keySharesECDSA, keySharesEdDSA, err := reconstruct.LoadFromZip(
 		ctx,
 		keyPair,
@@ -193,9 +203,17 @@ func (a *App) ChooseKeyShares() (string, error) {
 	}
 
 	a.lock.Lock()
+	defer a.lock.Unlock()
+	// 復元中にキーペアが選び直されていた場合は結果を書き戻さない
+	// （別のキーペアの表示のまま、古いzipの鍵を導出させないため）。
+	if a.generation != generation {
+		err := fmt.Errorf(
+			"key pair selection changed during restore",
+		)
+		return "", err
+	}
 	a.rootECDSA = rootECDSA
 	a.rootEdDSA = rootEdDSA
-	a.lock.Unlock()
 
 	return "OK", nil
 }

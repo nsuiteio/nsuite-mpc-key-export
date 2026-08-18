@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/decred/dcrd/dcrec/edwards/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,6 +82,16 @@ func fixtureECDSARoot(t *testing.T) *secp256k1.PrivateKey {
 	bs, err := strutil.FromHex(testfixture.SamplePrivateKeyECDSAHex)
 	require.NoError(t, err)
 	return secp256k1.PrivKeyFromBytes(bs)
+}
+
+// fixtureEdDSARoot はフィクスチャの期待root鍵（EdDSA）を返す。
+func fixtureEdDSARoot(t *testing.T) *edwards.PrivateKey {
+	t.Helper()
+	bs, err := strutil.FromHex(testfixture.SamplePrivateKeyEdDSAHex)
+	require.NoError(t, err)
+	prv, _, err := edwards.PrivKeyFromScalar(bs)
+	require.NoError(t, err)
+	return prv
 }
 
 func TestChooseKeyPairFile(t *testing.T) {
@@ -199,6 +210,88 @@ func TestChooseKeyShares(t *testing.T) {
 	})
 }
 
+func TestChooseKeySharesSessionInvalidation(t *testing.T) {
+	t.Run("異常系_復元済み後に壊れたzipで失敗すると旧root鍵は使えない", func(t *testing.T) {
+		app := restoreSession(t)
+
+		// 復元済みであることを確認
+		_, err := app.DeriveAddress("ECDSA", 0)
+		require.NoError(t, err)
+
+		// 壊れたzipを選択して復元に失敗する
+		brokenPath := filepath.Join(t.TempDir(), "broken.zip")
+		require.NoError(
+			t,
+			os.WriteFile(
+				brokenPath, []byte("not a zip file"), 0600,
+			),
+		)
+		stubOpenDialog(app, brokenPath)
+		_, err = app.ChooseKeyShares()
+		require.Error(t, err)
+
+		// 失敗後は前回復元したroot鍵も利用できない
+		_, err = app.DeriveAddress("ECDSA", 0)
+		assert.Error(t, err)
+	})
+
+	t.Run("正常系_選択キャンセルなら復元済みセッションは維持される", func(t *testing.T) {
+		app := restoreSession(t)
+
+		stubOpenDialog(app, "")
+		got, err := app.ChooseKeyShares()
+		require.NoError(t, err)
+		require.Equal(t, "", got)
+
+		// キャンセルは「何もしなかった」なので旧セッションは有効なまま
+		_, err = app.DeriveAddress("ECDSA", 0)
+		assert.NoError(t, err)
+	})
+
+	t.Run("異常系_zip復元中にキーペアが選び直されたら結果を書き戻さない", func(t *testing.T) {
+		app := newTestApp(t)
+		dir := t.TempDir()
+
+		stubOpenDialog(app, writeFixtureKeyPairFile(t, dir))
+		_, err := app.ChooseKeyPairFile()
+		require.NoError(t, err)
+
+		// 別のキーペアファイルを用意する
+		other, err := secutil.GenerateEncryptionKeyPair(
+			context.Background(),
+			secutil.EncryptionKeyPairTypeRSA,
+		)
+		require.NoError(t, err)
+		otherPath := filepath.Join(dir, "other.nstkey")
+		require.NoError(
+			t,
+			os.WriteFile(
+				otherPath, keypairfile.Encode(other), 0600,
+			),
+		)
+
+		// zip選択ダイアログの最中にキーペアが選び直される状況を模擬する
+		zipPath := writeFixtureZip(t, dir)
+		app.openFileDialog = func(
+			_ context.Context, _ runtime.OpenDialogOptions,
+		) (string, error) {
+			stubOpenDialog(app, otherPath)
+			if _, err := app.ChooseKeyPairFile(); err != nil {
+				return "", err
+			}
+			return zipPath, nil
+		}
+
+		// zipの復号自体は元のキーペアのスナップショットで成功するが、
+		// セッションが変わっているため結果は書き戻されない
+		_, err = app.ChooseKeyShares()
+		assert.Error(t, err)
+
+		_, err = app.DeriveAddress("ECDSA", 0)
+		assert.Error(t, err)
+	})
+}
+
 func TestDeriveAddress(t *testing.T) {
 	t.Run("正常系_ECDSAはderiveサービスと同じEVMアドレスを返す", func(t *testing.T) {
 		app := restoreSession(t)
@@ -267,5 +360,29 @@ func TestGetPrivateKey(t *testing.T) {
 		app := newTestApp(t)
 		_, err := app.GetPrivateKey("ECDSA", 0, "0xdummy")
 		assert.Error(t, err)
+	})
+
+	t.Run("正常系_EdDSAも確認済みアドレスと一致すれば子秘密鍵を返す", func(t *testing.T) {
+		app := restoreSession(t)
+
+		address, err := app.DeriveAddress("EdDSA", 0)
+		require.NoError(t, err)
+
+		got, err := app.GetPrivateKey("EdDSA", 0, address)
+		require.NoError(t, err)
+
+		child, _, err := derive.EdDSAChild(fixtureEdDSARoot(t), 0)
+		require.NoError(t, err)
+		assert.Equal(t, strutil.ToHex(child.Serialize()), got)
+	})
+
+	t.Run("異常系_EdDSAも確認済みアドレスと不一致なら秘密鍵を返さない", func(t *testing.T) {
+		app := restoreSession(t)
+
+		got, err := app.GetPrivateKey(
+			"EdDSA", 0, "So1anaWrongAddress1111111111111111111111111",
+		)
+		assert.Error(t, err)
+		assert.Empty(t, got)
 	})
 }

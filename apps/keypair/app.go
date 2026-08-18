@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -96,10 +97,10 @@ func (a *App) GenerateKeyPair() (*GeneratedKeyPair, error) {
 	}
 
 	// 鍵素材はユーザーが選んだファイルにのみ書き出す（所有者のみ読み書き可）
-	if err := os.WriteFile(
-		path, keypairfile.Encode(privateKey), 0600,
+	if err := writeFileAtomic(
+		path, keypairfile.Encode(privateKey),
 	); err != nil {
-		return nil, errutil.Wrap(err)
+		return nil, err
 	}
 	logger.Info(
 		"saved key pair file",
@@ -137,11 +138,7 @@ func (a *App) ShowKeyPairFile() (*GeneratedKeyPair, error) {
 		return nil, nil
 	}
 
-	bs, err := os.ReadFile(path)
-	if err != nil {
-		return nil, errutil.Wrap(err)
-	}
-	privateKey, err := keypairfile.Decode(bs)
+	privateKey, err := keypairfile.Load(path)
 	if err != nil {
 		return nil, err
 	}
@@ -151,6 +148,42 @@ func (a *App) ShowKeyPairFile() (*GeneratedKeyPair, error) {
 	)
 
 	return buildKeyPairInfo(privateKey, path)
+}
+
+// writeFileAtomic は同一ディレクトリの一時ファイル（0600）へ書き込み、
+// Sync・Close 完了後に原子的なリネームで目的パスへ置換する。
+//   - 既存ファイルの上書きでも権限は一時ファイル由来の 0600 に置き換わる
+//     （os.WriteFile の O_TRUNC は既存の緩い権限を引き継いでしまう）
+//   - 書き込みが途中で失敗しても既存の有効なファイルは切り詰められない
+func writeFileAtomic(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".nstkey-tmp-*")
+	if err != nil {
+		return errutil.Wrap(err)
+	}
+	tmpPath := tmp.Name()
+	// 成功時は rename 済みで存在しないため無視される。失敗時の掃除用。
+	defer func() { _ = os.Remove(tmpPath) }()
+
+	if err := tmp.Chmod(0600); err != nil {
+		_ = tmp.Close()
+		return errutil.Wrap(err)
+	}
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return errutil.Wrap(err)
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		return errutil.Wrap(err)
+	}
+	if err := tmp.Close(); err != nil {
+		return errutil.Wrap(err)
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return errutil.Wrap(err)
+	}
+	return nil
 }
 
 // buildKeyPairInfo は公開鍵情報を単一の鍵スナップショットから組み立てる。

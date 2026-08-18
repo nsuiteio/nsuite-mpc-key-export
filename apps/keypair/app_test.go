@@ -88,6 +88,67 @@ func TestGenerateKeyPair(t *testing.T) {
 		assert.Equal(t, os.FileMode(0600), info.Mode().Perm())
 	})
 
+	t.Run("正常系_権限が緩い既存ファイルを上書きしても0600になる", func(t *testing.T) {
+		app := newTestApp(t)
+		path := filepath.Join(t.TempDir(), "receiving-keypair.nstkey")
+		// 既存の0644ファイル（過去に緩い権限で作られた想定）
+		require.NoError(
+			t,
+			os.WriteFile(path, []byte("old content"), 0644),
+		)
+		stubSaveDialog(app, path)
+
+		_, err := app.GenerateKeyPair()
+		require.NoError(t, err)
+
+		info, err := os.Stat(path)
+		require.NoError(t, err)
+		assert.Equal(t, os.FileMode(0600), info.Mode().Perm())
+	})
+
+	t.Run("正常系_保存後に一時ファイルが残らない", func(t *testing.T) {
+		app := newTestApp(t)
+		dir := t.TempDir()
+		path := filepath.Join(dir, "receiving-keypair.nstkey")
+		stubSaveDialog(app, path)
+
+		_, err := app.GenerateKeyPair()
+		require.NoError(t, err)
+
+		entries, err := os.ReadDir(dir)
+		require.NoError(t, err)
+		require.Len(t, entries, 1)
+		assert.Equal(
+			t, "receiving-keypair.nstkey", entries[0].Name(),
+		)
+	})
+
+	t.Run("異常系_保存失敗時は既存ファイルが無傷で残る", func(t *testing.T) {
+		app := newTestApp(t)
+		dir := t.TempDir()
+		path := filepath.Join(dir, "receiving-keypair.nstkey")
+
+		// 有効な既存キーペアファイルを用意する
+		stubSaveDialog(app, path)
+		_, err := app.GenerateKeyPair()
+		require.NoError(t, err)
+		original, err := os.ReadFile(path)
+		require.NoError(t, err)
+
+		// ディレクトリを書き込み不可にして保存を失敗させる
+		require.NoError(t, os.Chmod(dir, 0500))
+		t.Cleanup(func() { _ = os.Chmod(dir, 0700) })
+
+		_, err = app.GenerateKeyPair()
+		require.Error(t, err)
+
+		// 既存ファイルは切り詰められず無傷のまま
+		require.NoError(t, os.Chmod(dir, 0700))
+		got, err := os.ReadFile(path)
+		require.NoError(t, err)
+		assert.Equal(t, original, got)
+	})
+
 	t.Run("正常系_保存キャンセルはnilを返しファイルを作らない", func(t *testing.T) {
 		app := newTestApp(t)
 		dir := t.TempDir()

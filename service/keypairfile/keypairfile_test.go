@@ -3,6 +3,8 @@ package keypairfile
 import (
 	"bytes"
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -72,6 +74,37 @@ func TestEncodeDecode(t *testing.T) {
 		encoded[len(Magic)] = 0xFF
 		_, err := Decode(encoded)
 		assert.ErrorIs(t, err, ErrUnsupportedVersion)
+	})
+
+	t.Run("正常系_Loadでファイルから読み込める", func(t *testing.T) {
+		prv := genKeyPair(t)
+		path := filepath.Join(t.TempDir(), "kp.nstkey")
+		require.NoError(t, os.WriteFile(path, Encode(prv), 0600))
+
+		decoded, err := Load(path)
+		require.NoError(t, err)
+		assert.Equal(
+			t,
+			prv.PublicKey().MarshalToBytes(),
+			decoded.PublicKey().MarshalToBytes(),
+		)
+	})
+
+	t.Run("異常系_上限サイズを超えるファイルはErrFileTooLarge", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "huge.nstkey")
+		huge := make([]byte, MaxFileSize+1)
+		copy(huge, []byte(Magic))
+		require.NoError(t, os.WriteFile(path, huge, 0600))
+
+		_, err := Load(path)
+		assert.ErrorIs(t, err, ErrFileTooLarge)
+	})
+
+	t.Run("異常系_存在しないファイルのLoadはエラー", func(t *testing.T) {
+		_, err := Load(
+			filepath.Join(t.TempDir(), "missing.nstkey"),
+		)
+		assert.Error(t, err)
 	})
 
 	t.Run("異常系_ペイロード破損はエラー", func(t *testing.T) {

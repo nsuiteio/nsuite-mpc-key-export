@@ -15,6 +15,7 @@ package keypairfile
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
@@ -33,6 +34,11 @@ const Extension = ".nstkey"
 // DefaultFileName は保存ダイアログの初期ファイル名。
 const DefaultFileName = "receiving-keypair" + Extension
 
+// MaxFileSize はキーペアファイルの上限サイズ。RSA-2048のキーペアは
+// 2KB弱なので1MiBあれば十分で、取り違えた巨大ファイルの読み込みによる
+// メモリ消費を防ぐ。
+const MaxFileSize = 1 << 20
+
 var (
 	// ErrNotKeyPairFile は入力がキーペアファイル形式でない場合のエラー。
 	ErrNotKeyPairFile = errors.New(
@@ -41,6 +47,10 @@ var (
 	// ErrUnsupportedVersion は未対応バージョンのファイルを読んだ場合のエラー。
 	ErrUnsupportedVersion = errors.New(
 		"unsupported key pair file version",
+	)
+	// ErrFileTooLarge は上限サイズを超えるファイルを読んだ場合のエラー。
+	ErrFileTooLarge = errors.New(
+		"key pair file is too large",
 	)
 )
 
@@ -52,6 +62,28 @@ func Encode(prv secutil.EncryptionPrivateKey) []byte {
 	bs = append(bs, Version)
 	bs = append(bs, payload...)
 	return bs
+}
+
+// Load はキーペアファイルを読み込んでキーペアに復元する。
+// 読み込み前にサイズ上限を検査し、取り違えた巨大ファイルを弾く。
+func Load(path string) (secutil.EncryptionPrivateKey, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	if info.Size() > MaxFileSize {
+		err := fmt.Errorf(
+			"%w: %d bytes",
+			ErrFileTooLarge,
+			info.Size(),
+		)
+		return nil, errutil.Wrap(err)
+	}
+	bs, err := os.ReadFile(path)
+	if err != nil {
+		return nil, errutil.Wrap(err)
+	}
+	return Decode(bs)
 }
 
 // Decode はファイルから読んだバイト列をキーペアに復元する。

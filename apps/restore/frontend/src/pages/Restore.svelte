@@ -7,7 +7,7 @@
     } from '../../wailsjs/runtime/runtime.js'
 
     // ---- Step 1: キーペアファイルの選択 ----
-    let keyPairInfo = null // { fingerprint, publicKeyHex, filePath }
+    let keyPairInfo = null // { fingerprint, filePath }
     let keyPairError = ''
 
     // ---- Step 2: zip の復号（root 鍵の復元） ----
@@ -76,6 +76,10 @@
             resetDerived()
         } catch (e) {
             // キーペア不一致・zip 復号失敗などはここに出る。
+            // バックエンド側で復元済みroot鍵は破棄されているため、
+            // 画面状態も復元前に戻す（成功表示とStep 3を残さない）。
+            restored = false
+            resetDerived()
             restoreError = String(e)
         } finally {
             restoring = false

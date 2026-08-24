@@ -21,11 +21,18 @@
 
     // QR はダイアログ下部にあるため、表示直後に見える位置までスクロールする
     // （押しても何も変わらないように見えるのを防ぐ）。
+    // 動きの抑制設定（prefers-reduced-motion）時は即時スクロールにする。
     async function toggleQR() {
         showQR = !showQR
         if (showQR) {
             await tick()
-            qrImg?.scrollIntoView({behavior: 'smooth', block: 'nearest'})
+            const reduceMotion = window.matchMedia?.(
+                '(prefers-reduced-motion: reduce)'
+            )?.matches
+            qrImg?.scrollIntoView({
+                behavior: reduceMotion ? 'auto' : 'smooth',
+                block: 'nearest',
+            })
         }
     }
 
@@ -96,8 +103,15 @@
             on:click={copyPublicKeyHex}>
             {copied ? 'コピーしました' : '公開鍵をコピー'}
         </button>
+        <!-- コピー結果はボタン文言の変化だけでは支援技術に通知されないため、
+             成功は role="status"（polite）、失敗は role="alert" で読み上げる -->
+        <span class="sr-only" role="status">
+            {copied ? '公開鍵をコピーしました' : ''}
+        </span>
         {#if copyError}
-            <p class="m-0 text-sm text-critical-main">{copyError}</p>
+            <p role="alert" class="m-0 text-sm text-critical-main">
+                {copyError}
+            </p>
         {/if}
         <div class="w-full rounded-md bg-back-lightGray p-3 text-center">
             <p class="m-0 mb-1 text-xs font-bold text-fore-gray">
@@ -107,7 +121,8 @@
             <p class="m-0 mt-1 text-xs leading-relaxed text-fore-gray">
                 公開鍵を渡した経路とは別の経路（電話・対面など）で
                 読み合わせ、モバイルアプリの表示と一致することを
-                確認してください。
+                確認してください。公開鍵自体は秘密情報ではありませんが、
+                受け渡し経路でのすり替えを検知するためにこの照合が必要です。
             </p>
         </div>
         <div class="flex gap-2">
@@ -115,6 +130,8 @@
                 class="cursor-pointer rounded-lg border border-fore-line
                        bg-fore-white px-4 py-2 text-sm text-fore-gray
                        hover:border-brand-main hover:text-brand-main"
+                aria-expanded={showQR}
+                aria-controls="qr-section"
                 on:click={toggleQR}>
                 {showQR ? 'QR コードを隠す' : 'QR コードを表示'}
             </button>
@@ -129,13 +146,18 @@
             </button>
         </div>
         {#if showQR}
-            <p class="m-0 text-center text-xs leading-relaxed text-fore-gray">
-                対面でモバイルアプリから直接読み取る場合のみ使用してください。
-            </p>
-            <img bind:this={qrImg}
-                 alt="公開鍵の QR コード" id="qr" src="{qrImage}"
-                 width="200" height="200"
-                 class="rounded-md border border-fore-line"/>
+            <div id="qr-section"
+                 class="flex flex-col items-center gap-4">
+                <p class="m-0 text-center text-xs leading-relaxed
+                          text-fore-gray">
+                    対面でモバイルアプリから直接読み取る場合のみ
+                    使用してください。
+                </p>
+                <img bind:this={qrImg}
+                     alt="公開鍵の QR コード" id="qr" src="{qrImage}"
+                     width="200" height="200"
+                     class="rounded-md border border-fore-line"/>
+            </div>
         {/if}
     </div>
 </div>

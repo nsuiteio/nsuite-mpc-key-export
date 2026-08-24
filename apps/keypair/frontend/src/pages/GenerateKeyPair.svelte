@@ -56,8 +56,9 @@
         </h2>
         <p class="mt-2 text-sm leading-relaxed text-fore-gray">
             エクスポートを受け取るための専用キーペアを生成し、
-            キーペアファイルとして保存します。生成後に表示される QR
-            コード（受取用公開鍵）を N Suite モバイルアプリで読み取ると、
+            キーペアファイルとして保存します。生成後に表示される
+            受取用公開鍵をエクスポート実行担当者に渡し、N Suite
+            モバイルアプリのエクスポート画面で入力してもらうと、
             KeyShare がこの公開鍵で暗号化されてエクスポートされます。
         </p>
     </div>
@@ -99,8 +100,8 @@
             保存済みキーペアの公開鍵を再表示する
         </h3>
         <p class="mt-1 mb-4 text-xs leading-relaxed text-fore-gray">
-            保存済みのキーペアファイルを選択すると、QR
-            コードとフィンガープリントを再表示できます。2
+            保存済みのキーペアファイルを選択すると、受取用公開鍵と
+            フィンガープリントを再表示できます。2
             回目以降のエクスポートで公開鍵を再提示する場合に使います。
         </p>
         <button
@@ -125,7 +126,7 @@
                        bg-fore-white px-3 py-1 text-xs text-fore-gray
                        hover:border-brand-main hover:text-brand-main"
                 on:click={() => (showPopup = true)}>
-                QR コードを再表示
+                公開鍵を再表示
             </button>
         </div>
     {/if}

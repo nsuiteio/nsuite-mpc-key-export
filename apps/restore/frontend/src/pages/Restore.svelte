@@ -17,10 +17,19 @@
 
     // ---- Step 3: 導出・取り出し ----
     let keyType = 'ECDSA'
-    let index = 0
 
-    // アドレス確認時のパラメータを固定し、秘密鍵の取得はこのスナップショット
-    // だけを使う。入力欄の後からの変更が取得対象に影響しないようにする。
+    // アドレス一覧（1ページ分）。8件ずつ前へ/次へでページングする。
+    const PAGE_SIZE = 8
+    let page = 0
+    let addressList = [] // [{ index, address }]
+    let listLoading = false
+    let listError = ''
+    // 一覧取得の古い応答を破棄するための連番。取り出し系のrequestSeqとは
+    // 独立させ、選択操作のリセットが一覧の読み込みを打ち消さないようにする。
+    let listSeq = 0
+
+    // 一覧から選択したパラメータを固定し、秘密鍵の取得はこのスナップショット
+    // だけを使う。選択後のページ移動やcurve切替が取得対象に影響しないようにする。
     let confirmed = null // { keyType, index, address }
 
     let privateKey = ''
@@ -54,6 +63,7 @@
             // リセットされるため、画面状態も合わせてリセットする。
             restored = false
             restoreError = ''
+            resetList()
             resetDerived()
         } catch (e) {
             // キーペア以外のファイルを選んだ場合などはここに出る。
@@ -73,12 +83,15 @@
             const result = await app.ChooseKeyShares()
             if (result !== 'OK') return
             restored = true
+            resetList()
             resetDerived()
+            await loadAddresses()
         } catch (e) {
             // キーペア不一致・zip 復号失敗などはここに出る。
             // バックエンド側で復元済みroot鍵は破棄されているため、
             // 画面状態も復元前に戻す（成功表示とStep 3を残さない）。
             restored = false
+            resetList()
             resetDerived()
             restoreError = String(e)
         } finally {
@@ -86,19 +99,67 @@
         }
     }
 
-    async function deriveAddress() {
-        resetDerived()
-        const seq = ++requestSeq
-        const params = {keyType, index: Number(index)}
+    // 現在のcurve種別とページに対応するアドレス一覧を取得する。
+    async function loadAddresses() {
+        const seq = ++listSeq
+        listLoading = true
+        listError = ''
         try {
-            const address = await app.DeriveAddress(
-                params.keyType, params.index)
-            if (seq !== requestSeq) return // 入力が変わった後の古い応答は捨てる
-            confirmed = {...params, address}
+            const entries = await app.DeriveAddresses(
+                keyType, page * PAGE_SIZE, PAGE_SIZE)
+            if (seq !== listSeq) return // 切替後の古い応答は捨てる
+            addressList = entries
         } catch (e) {
-            if (seq !== requestSeq) return
-            error = String(e)
+            if (seq !== listSeq) return
+            addressList = []
+            listError = String(e)
+        } finally {
+            if (seq === listSeq) listLoading = false
         }
+    }
+
+    // 一覧の行を選択して確認済みスナップショットを作る。
+    // アドレスは一覧取得時の値をそのまま使い、取り出し時にバックエンドが
+    // 再導出して一致を検証する（GetPrivateKeyのexpectedAddress突合）。
+    function selectAddress(entry) {
+        if (isSelected(confirmed, keyType, entry)) return // 再選択は無視
+        resetDerived()
+        confirmed = {keyType, index: entry.index, address: entry.address}
+    }
+
+    function isSelected(current, currentKeyType, entry) {
+        return !!current &&
+            current.keyType === currentKeyType &&
+            current.index === entry.index
+    }
+
+    // curve種別の切替: 選択・取得済みの秘密鍵を破棄し、先頭ページから
+    // 一覧を取り直す。
+    function changeKeyType() {
+        page = 0
+        resetDerived()
+        loadAddresses()
+    }
+
+    function prevPage() {
+        if (page === 0 || listLoading) return
+        page -= 1
+        loadAddresses()
+    }
+
+    function nextPage() {
+        if (listLoading) return
+        page += 1
+        loadAddresses()
+    }
+
+    // 一覧の状態を初期化し、進行中の取得を無効化する。
+    function resetList() {
+        addressList = []
+        page = 0
+        listError = ''
+        listLoading = false
+        listSeq++
     }
 
     // 秘密鍵の取得は confirmed のパラメータのみを使う。
@@ -165,7 +226,7 @@
         }
     }
 
-    // 入力（curve / index）が変わったら結果を無効化する。
+    // 選択（curve / アドレス）が変わったら結果を無効化する。
     function resetDerived() {
         confirmed = null
         privateKey = ''
@@ -196,10 +257,9 @@
         ? privateKey.slice(0, 6) + '…'.repeat(4) + privateKey.slice(-4)
         : ''
 
-    // HDPath index は非負整数のみ許可（空値・負数・小数は導出ボタンを無効化。
-    // バックエンドでも index < 0 は拒否されるが、誤操作を入力段階で防ぐ）。
-    $: indexValid = index !== '' && index !== null &&
-        Number.isInteger(Number(index)) && Number(index) >= 0
+    // 表示中ページのHDPath index範囲（例: #8〜#15）。
+    $: rangeStart = page * PAGE_SIZE
+    $: rangeEnd = rangeStart + PAGE_SIZE - 1
 </script>
 
 <div class="flex flex-col gap-6">
@@ -336,51 +396,101 @@
                 Step 3. アドレスを確認して秘密鍵を取り出す
             </h3>
             <p class="mt-1 mb-4 text-xs leading-relaxed text-fore-gray">
-                チェーンの種類と HDPath index を指定してアドレスを導出し、
-                取り出したいアドレスと一致することを確認してから秘密鍵を表示します。
+                チェーンの種類を選び、一覧から取り出したいアドレスを選択して
+                ください。選択したアドレスを確認してから秘密鍵を表示します。
             </p>
 
-            <div class="flex flex-col gap-3">
-                <div class="flex items-center gap-3">
-                    <label class="w-32 text-sm text-fore-black" for="keyType">
-                        チェーン種別
-                    </label>
-                    <select bind:value={keyType} id="keyType"
-                            class="flex-1 rounded-md border border-fore-line
-                                   bg-fore-white px-3 py-2 text-sm
-                                   focus:border-brand-main focus:outline-none"
-                            on:change={resetDerived}>
-                        <option value="ECDSA">ECDSA（EVM 系）</option>
-                        <option value="EdDSA">EdDSA（Solana）</option>
-                    </select>
-                </div>
-
-                <div class="flex items-center gap-3">
-                    <label class="w-32 text-sm text-fore-black" for="index">
-                        HDPath index
-                    </label>
-                    <input bind:value={index} id="index" type="number" min="0"
-                           step="1"
-                           class="flex-1 rounded-md border border-fore-line
-                                  px-3 py-2 text-sm focus:border-brand-main
-                                  focus:outline-none"
-                           on:input={resetDerived}/>
-                </div>
+            <div class="flex items-center gap-3">
+                <label class="w-32 text-sm text-fore-black" for="keyType">
+                    チェーン種別
+                </label>
+                <select bind:value={keyType} id="keyType"
+                        class="flex-1 rounded-md border border-fore-line
+                               bg-fore-white px-3 py-2 text-sm
+                               focus:border-brand-main focus:outline-none"
+                        on:change={changeKeyType}>
+                    <option value="ECDSA">ECDSA（EVM 系）</option>
+                    <option value="EdDSA">EdDSA（Solana）</option>
+                </select>
             </div>
 
-            <button
-                class="mt-4 cursor-pointer rounded-lg bg-brand-main px-5 py-2
-                       text-sm font-bold text-fore-white transition
-                       hover:bg-brand-dark disabled:cursor-not-allowed
-                       disabled:opacity-50"
-                disabled={!indexValid} on:click={deriveAddress}>
-                アドレスを導出する
-            </button>
-            {#if !indexValid}
-                <p class="mt-2 text-xs text-critical-main">
-                    HDPath index には 0 以上の整数を入力してください。
-                </p>
-            {/if}
+            <div class="mt-4 rounded-md border border-fore-line">
+                <div class="flex items-center justify-between border-b
+                            border-fore-line bg-back-lightGray px-3 py-2">
+                    <span class="text-xs font-bold text-fore-gray">
+                        アドレス一覧（HDPath index #{rangeStart}〜#{rangeEnd}）
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <button
+                            class="cursor-pointer rounded-md border
+                                   border-fore-line bg-fore-white px-3 py-1
+                                   text-xs text-fore-gray
+                                   hover:border-brand-main
+                                   hover:text-brand-main
+                                   disabled:cursor-not-allowed
+                                   disabled:opacity-50"
+                            disabled={page === 0 || listLoading}
+                            on:click={prevPage}>
+                            ← 前へ
+                        </button>
+                        <button
+                            class="cursor-pointer rounded-md border
+                                   border-fore-line bg-fore-white px-3 py-1
+                                   text-xs text-fore-gray
+                                   hover:border-brand-main
+                                   hover:text-brand-main
+                                   disabled:cursor-not-allowed
+                                   disabled:opacity-50"
+                            disabled={listLoading}
+                            on:click={nextPage}>
+                            次へ →
+                        </button>
+                    </div>
+                </div>
+                {#if listLoading}
+                    <p class="m-0 px-3 py-4 text-sm text-fore-gray">
+                        アドレスを導出中...
+                    </p>
+                {:else if listError}
+                    <p class="m-0 break-all px-3 py-4 text-sm
+                              text-critical-main">
+                        {listError}
+                    </p>
+                {:else}
+                    <ul class="m-0 list-none divide-y divide-fore-line p-0">
+                        {#each addressList as entry (entry.index)}
+                            <li>
+                                <button
+                                    class="flex w-full cursor-pointer
+                                           items-center gap-3 border-0 px-3
+                                           py-2 text-left text-sm transition
+                                           {isSelected(confirmed, keyType, entry)
+                                               ? 'bg-brand-light'
+                                               : 'bg-fore-white hover:bg-back-lightGray'}"
+                                    aria-pressed={isSelected(
+                                        confirmed, keyType, entry)}
+                                    on:click={() => selectAddress(entry)}>
+                                    <span class="w-14 shrink-0 text-xs
+                                                 text-fore-gray">
+                                        #{entry.index}
+                                    </span>
+                                    <code class="break-all text-sm
+                                                 text-fore-black">
+                                        {entry.address}
+                                    </code>
+                                    {#if isSelected(confirmed, keyType, entry)}
+                                        <span class="ml-auto shrink-0 text-xs
+                                                     font-bold
+                                                     text-brand-main">
+                                            選択中
+                                        </span>
+                                    {/if}
+                                </button>
+                            </li>
+                        {/each}
+                    </ul>
+                {/if}
+            </div>
 
             {#if confirmed}
                 <div class="mt-4 rounded-md bg-back-lightGray p-3">

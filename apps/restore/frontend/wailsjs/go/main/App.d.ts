@@ -8,4 +8,6 @@ export function ChooseKeyShares():Promise<string>;
 
 export function DeriveAddress(arg1:string,arg2:number):Promise<string>;
 
+export function DeriveAddresses(arg1:string,arg2:number,arg3:number):Promise<Array<main.AddressEntry>>;
+
 export function GetPrivateKey(arg1:string,arg2:number,arg3:string):Promise<string>;

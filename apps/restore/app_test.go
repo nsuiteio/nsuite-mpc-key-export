@@ -43,7 +43,7 @@ func writeFixtureKeyPairFile(t *testing.T, dir string) string {
 	t.Helper()
 	prv, err := testfixture.RSAPrivateKey()
 	require.NoError(t, err)
-	path := filepath.Join(dir, "receiving-keypair.nstkey")
+	path := filepath.Join(dir, "nsuite-mpc-extraction-keypair-ABCD1234.nstkey")
 	require.NoError(
 		t,
 		os.WriteFile(path, keypairfile.Encode(prv), 0600),
@@ -111,11 +111,43 @@ func TestChooseKeyPairFile(t *testing.T) {
 		assert.Equal(
 			t,
 			exportpubkey.FormatFingerprint(
-				exportpubkey.Fingerprint(pubkeyBs),
+				exportpubkey.ShortFingerprint(
+					exportpubkey.Fingerprint(pubkeyBs),
+				),
 			),
 			got.Fingerprint,
 		)
 		assert.Equal(t, path, got.FilePath)
+	})
+
+	// ファイル名の命名規則を変更する前（receiving-keypair.nstkey）に保存された
+	// ファイルも開けること。読み込みはファイル名でなく Magic ヘッダーで判定し、
+	// 保存フォーマット自体は変更していないため互換が保たれる。
+	t.Run("正常系_旧命名のファイルもそのまま読み込める", func(t *testing.T) {
+		app := newTestApp(t)
+		prv, err := testfixture.RSAPrivateKey()
+		require.NoError(t, err)
+		path := filepath.Join(t.TempDir(), "receiving-keypair.nstkey")
+		require.NoError(
+			t,
+			os.WriteFile(path, keypairfile.Encode(prv), 0600),
+		)
+		stubOpenDialog(app, path)
+
+		got, err := app.ChooseKeyPairFile()
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		assert.Equal(
+			t,
+			exportpubkey.FormatFingerprint(
+				exportpubkey.ShortFingerprint(
+					exportpubkey.Fingerprint(
+						prv.PublicKey().MarshalToBytes(),
+					),
+				),
+			),
+			got.Fingerprint,
+		)
 	})
 
 	t.Run("正常系_選択キャンセルはnilを返す", func(t *testing.T) {

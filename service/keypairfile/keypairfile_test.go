@@ -3,6 +3,7 @@ package keypairfile
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/nsuiteio/nst-mpc-key-export/service/exportpubkey"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
 )
 
@@ -115,5 +117,47 @@ func TestEncodeDecode(t *testing.T) {
 		corrupt = append(corrupt, 0xDE, 0xAD)
 		_, err := Decode(corrupt)
 		assert.Error(t, err)
+	})
+}
+
+func TestBuildFileName(t *testing.T) {
+	t.Run("正常系_短縮フィンガープリント付きの名前を返す", func(t *testing.T) {
+		assert.Equal(
+			t,
+			"nsuite-mpc-extraction-keypair-ABCD1234.nstkey",
+			BuildFileName("ABCD1234"),
+		)
+	})
+
+	// 暗号化ウォレット秘密鍵ファイル（nsuite-mpc-export-<FP>.zip）と
+	// プレフィックス・フィンガープリント部を揃え、2ファイルが対であることを
+	// ファイル名だけで判別できるようにしている。
+	t.Run("正常系_公開鍵バイト列からの固定ベクタ", func(t *testing.T) {
+		pubkeyBs, err := hex.DecodeString(
+			"00306e73742d6d70632d6b65792d6578706f7274" +
+				"2066696e6765727072696e74207465737420766563746f72",
+		)
+		require.NoError(t, err)
+
+		short := exportpubkey.ShortFingerprint(
+			exportpubkey.Fingerprint(pubkeyBs),
+		)
+		assert.Equal(
+			t,
+			"nsuite-mpc-extraction-keypair-F570C28F.nstkey",
+			BuildFileName(short),
+		)
+	})
+
+	t.Run("正常系_空の短縮値でもパスセパレータを含まない", func(t *testing.T) {
+		got := BuildFileName("")
+		assert.Equal(t, "nsuite-mpc-extraction-keypair-.nstkey", got)
+		assert.NotContains(t, got, string(filepath.Separator))
+	})
+
+	t.Run("正常系_拡張子は既存の Extension と一致する", func(t *testing.T) {
+		assert.Equal(
+			t, Extension, filepath.Ext(BuildFileName("ABCD1234")),
+		)
 	})
 }

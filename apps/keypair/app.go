@@ -75,10 +75,20 @@ func (a *App) GenerateKeyPair() (*GeneratedKeyPair, error) {
 		return nil, err
 	}
 
+	// 鍵はダイアログ表示より前に生成済みなので、その公開鍵から短縮
+	// フィンガープリントを算出して初期ファイル名に埋め込める。
+	shortFingerprint := exportpubkey.ShortFingerprint(
+		exportpubkey.Fingerprint(
+			privateKey.PublicKey().MarshalToBytes(),
+		),
+	)
+
 	path, err := a.saveFileDialog(
 		ctx, runtime.SaveDialogOptions{
-			Title:           "キーペアファイルの保存先を選択してください",
-			DefaultFilename: keypairfile.DefaultFileName,
+			Title: "キーペアファイルの保存先を選択してください",
+			DefaultFilename: keypairfile.BuildFileName(
+				shortFingerprint,
+			),
 			Filters: []runtime.FileFilter{
 				{
 					DisplayName: "キーペアファイル (*" +
@@ -205,7 +215,9 @@ func buildKeyPairInfo(
 	return &GeneratedKeyPair{
 		QRImage: "data:image/png;base64," + b64,
 		Fingerprint: exportpubkey.FormatFingerprint(
-			exportpubkey.Fingerprint(pubkeyBs),
+			exportpubkey.ShortFingerprint(
+				exportpubkey.Fingerprint(pubkeyBs),
+			),
 		),
 		PublicKeyHex: payload,
 		FilePath:     path,

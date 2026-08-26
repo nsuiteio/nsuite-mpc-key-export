@@ -43,3 +43,22 @@ func FormatFingerprint(fingerprint string) string {
 	}
 	return strings.Join(groups, " ")
 }
+
+// ShortFingerprintLength はファイル名に使う短縮フィンガープリントの文字数。
+// sha256 の先頭 32bit 相当で、ファイル名の視認性と取り違え防止を両立する
+// （厳密な照合は表示用の全長フィンガープリントで行う前提）。
+const ShortFingerprintLength = 8
+
+// ShortFingerprint はフィンガープリントの先頭 8 文字を大文字で返す。
+// ファイル名に埋め込む用途で、出力は hex（0-9A-F）のみ。
+// 表示用の「ABCD EFGH」形式は FormatFingerprint と組み合わせて得る。
+//
+// 8 文字未満の入力はそのまま大文字化して返す（鍵生成後の唯一の失敗点を
+// 作らないため、異常値でもパニックさせない）。
+func ShortFingerprint(fingerprint string) string {
+	upper := strings.ToUpper(fingerprint)
+	if len(upper) <= ShortFingerprintLength {
+		return upper
+	}
+	return upper[:ShortFingerprintLength]
+}

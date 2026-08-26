@@ -215,9 +215,7 @@ func buildKeyPairInfo(
 	return &GeneratedKeyPair{
 		QRImage: "data:image/png;base64," + b64,
 		Fingerprint: exportpubkey.FormatFingerprint(
-			exportpubkey.ShortFingerprint(
-				exportpubkey.Fingerprint(pubkeyBs),
-			),
+			exportpubkey.Fingerprint(pubkeyBs),
 		),
 		PublicKeyHex: payload,
 		FilePath:     path,

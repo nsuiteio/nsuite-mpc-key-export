@@ -112,15 +112,16 @@ func TestGenerateKeyPair(t *testing.T) {
 		// 返却された公開鍵情報が保存されたキーペアと一致する
 		pubkeyBs := prv.PublicKey().MarshalToBytes()
 		assert.Equal(t, exportpubkey.Payload(pubkeyBs), got.PublicKeyHex)
+		// 表示の短縮はフロント側の責務。バックエンドは公開鍵すり替え検知に
+		// 必要な全長（64桁）を返す。
 		assert.Equal(
 			t,
 			exportpubkey.FormatFingerprint(
-				exportpubkey.ShortFingerprint(
-					exportpubkey.Fingerprint(pubkeyBs),
-				),
+				exportpubkey.Fingerprint(pubkeyBs),
 			),
 			got.Fingerprint,
 		)
+		assert.Len(t, strings.ReplaceAll(got.Fingerprint, " ", ""), 64)
 		assert.True(
 			t,
 			strings.HasPrefix(got.QRImage, "data:image/png;base64,"),

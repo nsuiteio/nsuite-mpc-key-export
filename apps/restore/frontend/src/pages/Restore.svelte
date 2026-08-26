@@ -1,6 +1,7 @@
 <script>
     import {onDestroy} from 'svelte'
     import * as app from '../../wailsjs/go/main/App.js'
+    import Fingerprint from '../components/Fingerprint.svelte'
     import {
         ClipboardGetText,
         ClipboardSetText,
@@ -286,7 +287,9 @@
                 <div class="mt-2 text-xs font-bold text-fore-gray">
                     Fingerprint（キーペア生成時の記録と一致することを確認してください）
                 </div>
-                <code class="break-all text-sm">{keyPairInfo.fingerprint}</code>
+                <Fingerprint
+                    fingerprint={keyPairInfo.fingerprint}
+                    id="keypair-fingerprint"/>
             </div>
         {/if}
         {#if keyPairError}

@@ -149,9 +149,9 @@ func TestBuildFileName(t *testing.T) {
 		)
 	})
 
-	t.Run("正常系_空の短縮値でもパスセパレータを含まない", func(t *testing.T) {
+	t.Run("正常系_空の短縮値は短縮値なしの既定名になる", func(t *testing.T) {
 		got := BuildFileName("")
-		assert.Equal(t, "nsuite-mpc-extraction-keypair-.nstkey", got)
+		assert.Equal(t, "nsuite-mpc-extraction-keypair.nstkey", got)
 		assert.NotContains(t, got, string(filepath.Separator))
 	})
 
@@ -160,4 +160,28 @@ func TestBuildFileName(t *testing.T) {
 			t, Extension, filepath.Ext(BuildFileName("ABCD1234")),
 		)
 	})
+}
+
+// BuildFileName はファイル名を組み立てるため、想定外の入力でも
+// パス区切りや親ディレクトリ参照を含む名前を作らないこと。
+// 想定入力は exportpubkey.ShortFingerprint の出力（hex 8 文字）で、
+// それ以外は短縮値を省いた安全な既定名にフォールバックする。
+func TestBuildFileName_RejectsUnexpectedInput(t *testing.T) {
+	const fallback = "nsuite-mpc-extraction-keypair" + Extension
+	cases := map[string]string{
+		"":                fallback,
+		"ABCD123":         fallback, // 8 文字未満
+		"ABCD12345":       fallback, // 8 文字超過
+		"abcd1234":        fallback, // 小文字（ShortFingerprint は大文字を返す）
+		"ABCD12G4":        fallback, // 非 hex
+		"../../etc/passw": fallback,
+		"AB/CD1234":       fallback,
+	}
+	for in, want := range cases {
+		got := BuildFileName(in)
+		assert.Equal(t, want, got, "BuildFileName(%q)", in)
+		assert.NotContains(t, got, "/")
+		assert.NotContains(t, got, `\`)
+		assert.NotContains(t, got, "..")
+	}
 }

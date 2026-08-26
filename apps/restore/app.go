@@ -117,9 +117,7 @@ func (a *App) ChooseKeyPairFile() (*KeyPairInfo, error) {
 	pubkeyBs := privateKey.PublicKey().MarshalToBytes()
 	return &KeyPairInfo{
 		Fingerprint: exportpubkey.FormatFingerprint(
-			exportpubkey.ShortFingerprint(
-				exportpubkey.Fingerprint(pubkeyBs),
-			),
+			exportpubkey.Fingerprint(pubkeyBs),
 		),
 		FilePath: path,
 	}, nil

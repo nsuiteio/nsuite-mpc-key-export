@@ -17,6 +17,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
@@ -38,10 +40,21 @@ const Extension = ".nstkey"
 // 揃えることで、2 つのファイルが対であることをファイル名だけで判別できる。
 const FileNamePrefix = "nsuite-mpc-extraction-keypair-"
 
+// shortFingerprintPattern は BuildFileName が受理する短縮フィンガープリントの
+// 形式（exportpubkey.ShortFingerprint の出力＝大文字 hex 8 文字）。
+var shortFingerprintPattern = regexp.MustCompile(`^[0-9A-F]{8}$`)
+
 // BuildFileName は保存ダイアログの初期ファイル名を組み立てる。
-// shortFingerprint には exportpubkey.ShortFingerprint の出力（hex 8 文字）を
-// 渡す。hex のみなのでファイル名に使える文字だけで構成される。
+// shortFingerprint には exportpubkey.ShortFingerprint の出力（大文字 hex
+// 8 文字）を渡す。
+//
+// 形式が想定と異なる場合は短縮値を付けない既定名を返す。ファイル名を組み立てる
+// 以上、パス区切りや親ディレクトリ参照が紛れ込む余地を残さないため
+// （呼び出し元は内部生成値のみを渡すが、契約として固定する）。
 func BuildFileName(shortFingerprint string) string {
+	if !shortFingerprintPattern.MatchString(shortFingerprint) {
+		return strings.TrimSuffix(FileNamePrefix, "-") + Extension
+	}
 	return FileNamePrefix + shortFingerprint + Extension
 }
 

@@ -117,3 +117,19 @@ func TestShortFingerprint_FileNameSafe(t *testing.T) {
 		}
 	}
 }
+
+// 短縮値は 32bit しかないため、先頭 8 桁が同じでも別の公開鍵であり得る。
+// 短縮値は「読み上げ照合用の表示」に限定し、同一性の判定に使わないこと。
+// 厳密な照合は全長（64 桁）で行う。
+func TestShortFingerprint_CollisionIsNotIdentity(t *testing.T) {
+	const a = "f570c28f4ae12d3cc47a09041190afce" +
+		"712bc5561826c0c60b50f1e83f147fbb"
+	const b = "f570c28f0000000000000000000000000" +
+		"0000000000000000000000000000000"
+	if ShortFingerprint(a) != ShortFingerprint(b) {
+		t.Fatal("test premise broken: short values must collide here")
+	}
+	if FormatFingerprint(a) == FormatFingerprint(b) {
+		t.Error("full fingerprints must stay distinguishable")
+	}
+}

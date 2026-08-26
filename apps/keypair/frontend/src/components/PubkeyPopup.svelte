@@ -1,6 +1,7 @@
 <script>
     import {onMount, tick} from 'svelte'
     import {ClipboardSetText} from '../../wailsjs/runtime/runtime.js'
+    import Fingerprint from './Fingerprint.svelte'
 
     // GenerateKeyPair の単一レスポンス（qrImage / fingerprint / publicKeyHex）。
     // すべて同一の公開鍵に由来する値を受け取る。
@@ -117,12 +118,14 @@
             <p class="m-0 mb-1 text-xs font-bold text-fore-gray">
                 Fingerprint
             </p>
-            <code class="text-sm">{fingerprint}</code>
+            <Fingerprint {fingerprint} id="popup-fingerprint"/>
             <p class="m-0 mt-1 text-xs leading-relaxed text-fore-gray">
                 公開鍵を渡した経路とは別の経路（電話・対面など）で
                 読み合わせ、モバイルアプリの表示と一致することを
                 確認してください。公開鍵自体は秘密情報ではありませんが、
                 受け渡し経路でのすり替えを検知するためにこの照合が必要です。
+                短縮表示は 32bit のため、厳密に照合する場合は全桁を表示して
+                突き合わせてください。
             </p>
         </div>
         <div class="flex gap-2">

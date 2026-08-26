@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/decred/dcrd/dcrec/edwards/v2"
@@ -108,15 +109,16 @@ func TestChooseKeyPairFile(t *testing.T) {
 		prv, err := testfixture.RSAPrivateKey()
 		require.NoError(t, err)
 		pubkeyBs := prv.PublicKey().MarshalToBytes()
+		// 表示の短縮はフロント側の責務。バックエンドは公開鍵すり替え検知に
+		// 必要な全長（64桁）を返す。
 		assert.Equal(
 			t,
 			exportpubkey.FormatFingerprint(
-				exportpubkey.ShortFingerprint(
-					exportpubkey.Fingerprint(pubkeyBs),
-				),
+				exportpubkey.Fingerprint(pubkeyBs),
 			),
 			got.Fingerprint,
 		)
+		assert.Len(t, strings.ReplaceAll(got.Fingerprint, " ", ""), 64)
 		assert.Equal(t, path, got.FilePath)
 	})
 
@@ -140,10 +142,8 @@ func TestChooseKeyPairFile(t *testing.T) {
 		assert.Equal(
 			t,
 			exportpubkey.FormatFingerprint(
-				exportpubkey.ShortFingerprint(
-					exportpubkey.Fingerprint(
-						prv.PublicKey().MarshalToBytes(),
-					),
+				exportpubkey.Fingerprint(
+					prv.PublicKey().MarshalToBytes(),
 				),
 			),
 			got.Fingerprint,

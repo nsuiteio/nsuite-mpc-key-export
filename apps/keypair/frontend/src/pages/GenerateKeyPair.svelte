@@ -1,5 +1,6 @@
 <script>
     import * as app from '../../wailsjs/go/main/App.js'
+    import Fingerprint from '../components/Fingerprint.svelte'
     import PubkeyPopup from '../components/PubkeyPopup.svelte'
 
     let keyPair = null // GeneratedKeyPair（生成 or 再表示の結果）
@@ -122,7 +123,10 @@
                     text-sm text-fore-black">
             <div>✓ キーペアファイル: <code class="break-all">{keyPair.filePath}</code></div>
             <div class="mt-1">
-                Fingerprint: <code class="break-all">{keyPair.fingerprint}</code>
+                <span class="text-xs font-bold text-fore-gray">Fingerprint</span>
+                <Fingerprint
+                    fingerprint={keyPair.fingerprint}
+                    id="saved-fingerprint"/>
             </div>
             <button
                 class="mt-2 cursor-pointer rounded-md border border-fore-line

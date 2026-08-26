@@ -38,7 +38,7 @@ func stubOpenDialog(app *App, path string) {
 	}
 }
 
-// writeFixtureKeyPairFile はフィクスチャの受取用キーペアをファイルに書き出す。
+// writeFixtureKeyPairFile はフィクスチャの取出用キーペアをファイルに書き出す。
 func writeFixtureKeyPairFile(t *testing.T, dir string) string {
 	t.Helper()
 	prv, err := testfixture.RSAPrivateKey()
@@ -51,7 +51,8 @@ func writeFixtureKeyPairFile(t *testing.T, dir string) string {
 	return path
 }
 
-// writeFixtureZip はフィクスチャのエクスポートzipをファイルに書き出す。
+// writeFixtureZip はフィクスチャの暗号化ウォレット秘密鍵ファイル（zip）を
+// ファイルに書き出す。
 func writeFixtureZip(t *testing.T, dir string) string {
 	t.Helper()
 	path := filepath.Join(dir, "keyshares.zip")

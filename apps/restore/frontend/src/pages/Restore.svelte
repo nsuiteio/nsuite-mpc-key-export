@@ -141,15 +141,18 @@
         loadAddresses()
     }
 
-    function prevPage() {
-        if (page === 0 || listLoading) return
-        page -= 1
-        loadAddresses()
-    }
+    // HDPath indexの上限（int32の最大値。バックエンドと揃える）。
+    const MAX_INDEX = 2147483647
 
-    function nextPage() {
+    // ページ移動の共通処理。前ページで選択したアドレス・表示済みの秘密鍵を
+    // 破棄し（進行中の取得もresetDerivedのrequestSeq++で無効化）、
+    // 新しいページの一覧を取り直す。
+    function changePage(delta) {
         if (listLoading) return
-        page += 1
+        const next = page + delta
+        if (next < 0 || next * PAGE_SIZE > MAX_INDEX) return
+        page = next
+        resetDerived()
         loadAddresses()
     }
 
@@ -430,7 +433,7 @@
                                    disabled:cursor-not-allowed
                                    disabled:opacity-50"
                             disabled={page === 0 || listLoading}
-                            on:click={prevPage}>
+                            on:click={() => changePage(-1)}>
                             ← 前へ
                         </button>
                         <button
@@ -441,8 +444,9 @@
                                    hover:text-brand-main
                                    disabled:cursor-not-allowed
                                    disabled:opacity-50"
-                            disabled={listLoading}
-                            on:click={nextPage}>
+                            disabled={listLoading ||
+                                (page + 1) * PAGE_SIZE > MAX_INDEX}
+                            on:click={() => changePage(1)}>
                             次へ →
                         </button>
                     </div>

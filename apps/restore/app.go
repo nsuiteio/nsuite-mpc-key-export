@@ -309,9 +309,15 @@ func (a *App) DeriveAddresses(
 		)
 		return nil, err
 	}
-	// startIndex側の負数チェックはderiveChildで行われるが、
-	// 終端indexのint32オーバーフローはここで拒否する。
-	if startIndex > math.MaxInt32-count {
+	if startIndex < 0 {
+		err := fmt.Errorf(
+			"start index must be non-negative: %d", startIndex,
+		)
+		return nil, err
+	}
+	// 終端index（startIndex + count - 1）のint32オーバーフローを拒否する。
+	// 終端がちょうどMaxInt32になる場合は正常。
+	if startIndex > math.MaxInt32-(count-1) {
 		err := fmt.Errorf(
 			"index range exceeds int32: start=%d count=%d",
 			startIndex, count,

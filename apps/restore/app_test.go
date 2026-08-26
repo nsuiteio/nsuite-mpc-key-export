@@ -399,6 +399,25 @@ func TestDeriveAddresses(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("正常系_終端がちょうどMaxInt32なら導出できる", func(t *testing.T) {
+		app := restoreSession(t)
+
+		got, err := app.DeriveAddresses("ECDSA", 2147483647-7, 8)
+		require.NoError(t, err)
+		require.Len(t, got, 8)
+		assert.Equal(t, int32(2147483647), got[7].Index)
+
+		want, err := app.DeriveAddress("ECDSA", 2147483647)
+		require.NoError(t, err)
+		assert.Equal(t, want, got[7].Address)
+	})
+
+	t.Run("異常系_終端がMaxInt32を超えるとエラー", func(t *testing.T) {
+		app := restoreSession(t)
+		_, err := app.DeriveAddresses("ECDSA", 2147483647-6, 8)
+		assert.Error(t, err)
+	})
+
 	t.Run("異常系_startIndexとcountの合計がint32を超えるとエラー", func(t *testing.T) {
 		app := restoreSession(t)
 		_, err := app.DeriveAddresses("ECDSA", 2147483647, 8)

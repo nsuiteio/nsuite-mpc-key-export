@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"sync"
 
 	"github.com/decred/dcrd/dcrec/edwards/v2"
@@ -272,6 +273,73 @@ func (a *App) DeriveAddress(
 	// アドレスはアカウントを識別できる情報のためログに値は出さない。
 	logger.Info("derived address")
 	return address, nil
+}
+
+// AddressEntry はアドレス一覧の1件分（HDPath indexとアドレスの組）。
+type AddressEntry struct {
+	Index   int32  `json:"index"`
+	Address string `json:"address"`
+}
+
+// deriveAddressesMaxCount は一括導出の1回あたり上限。フロントは8件ずつ
+// 要求するが、不正な呼び出しで大量導出させないための防御。
+const deriveAddressesMaxCount = 100
+
+// DeriveAddresses は復元済みのroot鍵から、startIndexからcount件分の
+// 子アドレスを一括導出して返す。取り出し対象をアドレス一覧から
+// 選択させるための表示用で、秘密鍵は返さない。
+func (a *App) DeriveAddresses(
+	keyType string,
+	startIndex int32,
+	count int32,
+) ([]AddressEntry, error) {
+	ctx := a.ctx
+	logger := logutil.Get(ctx).With(
+		slog.String("function", "DeriveAddresses"),
+		slog.String("key_type", keyType),
+		slog.Int("start_index", int(startIndex)),
+		slog.Int("count", int(count)),
+	)
+	logger.Info("started")
+
+	if count < 1 || count > deriveAddressesMaxCount {
+		err := fmt.Errorf(
+			"count must be between 1 and %d: %d",
+			deriveAddressesMaxCount, count,
+		)
+		return nil, err
+	}
+	if startIndex < 0 {
+		err := fmt.Errorf(
+			"start index must be non-negative: %d", startIndex,
+		)
+		return nil, err
+	}
+	// 終端index（startIndex + count - 1）のint32オーバーフローを拒否する。
+	// 終端がちょうどMaxInt32になる場合は正常。
+	if startIndex > math.MaxInt32-(count-1) {
+		err := fmt.Errorf(
+			"index range exceeds int32: start=%d count=%d",
+			startIndex, count,
+		)
+		return nil, err
+	}
+
+	entries := make([]AddressEntry, 0, count)
+	for i := int32(0); i < count; i++ {
+		index := startIndex + i
+		_, address, err := a.deriveChild(keyType, index)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, AddressEntry{
+			Index:   index,
+			Address: address,
+		})
+	}
+	// アドレスはアカウントを識別できる情報のためログに値は出さない。
+	logger.Info("derived addresses")
+	return entries, nil
 }
 
 // deriveChild は復元済みroot鍵からindexで子秘密鍵とアドレスを導出する共通処理。

@@ -331,6 +331,100 @@ func TestDeriveAddress(t *testing.T) {
 	})
 }
 
+func TestDeriveAddresses(t *testing.T) {
+	t.Run("正常系_ECDSAの各要素は単発のDeriveAddressと一致する", func(t *testing.T) {
+		app := restoreSession(t)
+
+		got, err := app.DeriveAddresses("ECDSA", 0, 8)
+		require.NoError(t, err)
+		require.Len(t, got, 8)
+
+		for i, entry := range got {
+			assert.Equal(t, int32(i), entry.Index)
+			want, err := app.DeriveAddress("ECDSA", int32(i))
+			require.NoError(t, err)
+			assert.Equal(t, want, entry.Address)
+		}
+	})
+
+	t.Run("正常系_EdDSAの各要素は単発のDeriveAddressと一致する", func(t *testing.T) {
+		app := restoreSession(t)
+
+		got, err := app.DeriveAddresses("EdDSA", 0, 8)
+		require.NoError(t, err)
+		require.Len(t, got, 8)
+
+		for i, entry := range got {
+			assert.Equal(t, int32(i), entry.Index)
+			want, err := app.DeriveAddress("EdDSA", int32(i))
+			require.NoError(t, err)
+			assert.Equal(t, want, entry.Address)
+		}
+	})
+
+	t.Run("正常系_startIndexのオフセットが反映される", func(t *testing.T) {
+		app := restoreSession(t)
+
+		got, err := app.DeriveAddresses("ECDSA", 8, 8)
+		require.NoError(t, err)
+		require.Len(t, got, 8)
+		assert.Equal(t, int32(8), got[0].Index)
+
+		want, err := app.DeriveAddress("ECDSA", 8)
+		require.NoError(t, err)
+		assert.Equal(t, want, got[0].Address)
+	})
+
+	t.Run("異常系_復元前は導出できない", func(t *testing.T) {
+		app := newTestApp(t)
+		_, err := app.DeriveAddresses("ECDSA", 0, 8)
+		assert.Error(t, err)
+	})
+
+	t.Run("異常系_負のstartIndexはエラー", func(t *testing.T) {
+		app := restoreSession(t)
+		_, err := app.DeriveAddresses("ECDSA", -1, 8)
+		assert.Error(t, err)
+	})
+
+	t.Run("異常系_countが0以下はエラー", func(t *testing.T) {
+		app := restoreSession(t)
+		_, err := app.DeriveAddresses("ECDSA", 0, 0)
+		assert.Error(t, err)
+	})
+
+	t.Run("異常系_countが上限を超えるとエラー", func(t *testing.T) {
+		app := restoreSession(t)
+		_, err := app.DeriveAddresses("ECDSA", 0, 101)
+		assert.Error(t, err)
+	})
+
+	t.Run("正常系_終端がちょうどMaxInt32なら導出できる", func(t *testing.T) {
+		app := restoreSession(t)
+
+		got, err := app.DeriveAddresses("ECDSA", 2147483647-7, 8)
+		require.NoError(t, err)
+		require.Len(t, got, 8)
+		assert.Equal(t, int32(2147483647), got[7].Index)
+
+		want, err := app.DeriveAddress("ECDSA", 2147483647)
+		require.NoError(t, err)
+		assert.Equal(t, want, got[7].Address)
+	})
+
+	t.Run("異常系_終端がMaxInt32を超えるとエラー", func(t *testing.T) {
+		app := restoreSession(t)
+		_, err := app.DeriveAddresses("ECDSA", 2147483647-6, 8)
+		assert.Error(t, err)
+	})
+
+	t.Run("異常系_startIndexとcountの合計がint32を超えるとエラー", func(t *testing.T) {
+		app := restoreSession(t)
+		_, err := app.DeriveAddresses("ECDSA", 2147483647, 8)
+		assert.Error(t, err)
+	})
+}
+
 func TestGetPrivateKey(t *testing.T) {
 	t.Run("正常系_確認済みアドレスと一致すれば子秘密鍵を返す", func(t *testing.T) {
 		app := restoreSession(t)

@@ -1,5 +1,6 @@
 <script>
     import * as app from '../../wailsjs/go/main/App.js'
+    import Fingerprint from '../components/Fingerprint.svelte'
     import PubkeyPopup from '../components/PubkeyPopup.svelte'
 
     let keyPair = null // GeneratedKeyPair（生成 or 再表示の結果）
@@ -52,24 +53,26 @@
 <div class="flex flex-col gap-6">
     <div>
         <h2 class="m-0 text-xl font-bold text-fore-black">
-            受取用キーペアの生成（エクスポートの準備）
+            エクスポート準備（取出用キーペアの生成）
         </h2>
         <p class="mt-2 text-sm leading-relaxed text-fore-gray">
-            エクスポートを受け取るための専用キーペアを生成し、
+            秘密鍵の取り出しに使う取出用キーペアを生成し、
             キーペアファイルとして保存します。生成後に表示される
-            受取用公開鍵をエクスポート実行担当者に渡し、N Suite
-            モバイルアプリのエクスポート画面で入力してもらうと、
-            KeyShare がこの公開鍵で暗号化されてエクスポートされます。
+            取出用公開鍵をエクスポート実行者に渡し、N Suite
+            モバイルアプリの MPC秘密鍵のエクスポート画面で
+            入力してもらうと、署名鍵（KeyShare）がこの公開鍵で
+            暗号化されます。
         </p>
     </div>
 
     <div class="rounded-xl border border-warning-main bg-warning-light p-4
                 text-sm leading-relaxed text-fore-black">
         <strong>保管ルール:</strong>
-        キーペアファイルは暗号化されていません。エクスポート zip
-        とは別の担当者が、別のストレージ（オフラインメディア推奨）で
-        保管してください。キーペアファイルと zip
-        の両方が揃うと、ウォレット秘密鍵を復元できます。
+        キーペアファイルは暗号化されていません。暗号化ウォレット秘密鍵
+        ファイル（zip）とは別の担当者が、別のストレージ
+        （オフラインメディア推奨）で保管してください。キーペアファイルと
+        暗号化ウォレット秘密鍵ファイルの両方が揃うと、
+        ウォレット秘密鍵を復元できます。
     </div>
 
     <div class="rounded-xl border border-fore-line bg-fore-white p-6
@@ -80,9 +83,10 @@
         <p class="mt-1 mb-4 text-xs leading-relaxed text-fore-gray">
             生成したキーペアは、保存先を選択したファイルにのみ書き出されます。
             このアプリ自体は何も記憶しません。ファイルを失うと、
-            その公開鍵でエクスポートした zip は復号できなくなります
-            （ウォレットが N Suite で稼働中であれば、新しいキーペアで
-            再エクスポートすればバックアップを作り直せます）。
+            その公開鍵で作成した暗号化ウォレット秘密鍵ファイルは
+            復号できなくなります（ウォレットが N Suite で稼働中であれば、
+            新しいキーペアで再エクスポートすれば暗号化ウォレット秘密鍵
+            ファイルを作り直せます）。
         </p>
         <button
             class="cursor-pointer rounded-lg bg-brand-main px-5 py-2
@@ -100,7 +104,7 @@
             保存済みキーペアの公開鍵を再表示する
         </h3>
         <p class="mt-1 mb-4 text-xs leading-relaxed text-fore-gray">
-            保存済みのキーペアファイルを選択すると、受取用公開鍵と
+            保存済みのキーペアファイルを選択すると、取出用公開鍵と
             フィンガープリントを再表示できます。2
             回目以降のエクスポートで公開鍵を再提示する場合に使います。
         </p>
@@ -119,7 +123,10 @@
                     text-sm text-fore-black">
             <div>✓ キーペアファイル: <code class="break-all">{keyPair.filePath}</code></div>
             <div class="mt-1">
-                Fingerprint: <code class="break-all">{keyPair.fingerprint}</code>
+                <span class="text-xs font-bold text-fore-gray">Fingerprint</span>
+                <Fingerprint
+                    fingerprint={keyPair.fingerprint}
+                    id="saved-fingerprint"/>
             </div>
             <button
                 class="mt-2 cursor-pointer rounded-md border border-fore-line

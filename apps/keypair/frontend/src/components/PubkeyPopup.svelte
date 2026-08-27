@@ -1,6 +1,7 @@
 <script>
     import {onMount, tick} from 'svelte'
     import {ClipboardSetText} from '../../wailsjs/runtime/runtime.js'
+    import Fingerprint from './Fingerprint.svelte'
 
     // GenerateKeyPair の単一レスポンス（qrImage / fingerprint / publicKeyHex）。
     // すべて同一の公開鍵に由来する値を受け取る。
@@ -69,12 +70,12 @@
 
 <svelte:window on:keydown={handleKeydown}/>
 
-<div role="dialog" aria-modal="true" aria-label="鍵ペアの生成結果"
+<div role="dialog" aria-modal="true" aria-label="キーペアの生成結果"
      class="fixed inset-0 z-50 flex items-center justify-center bg-fore-black/50">
     <div class="mx-4 flex max-h-[90vh] max-w-md flex-col items-center gap-4
                 overflow-y-auto rounded-xl bg-fore-white p-6 shadow-lg">
         <h3 class="m-0 text-base font-bold text-fore-black">
-            受取用キーペア
+            取出用キーペア
         </h3>
         {#if filePath}
             <p class="m-0 w-full break-all text-center text-xs
@@ -83,13 +84,13 @@
             </p>
         {/if}
         <p class="m-0 text-center text-xs leading-relaxed text-fore-gray">
-            受取用公開鍵をコピーして、エクスポートを実行する担当者に
-            渡してください。担当者は N Suite モバイルアプリの
-            エクスポート画面でこの公開鍵を入力します。
+            取出用公開鍵をコピーして、エクスポート実行者に
+            渡してください。エクスポート実行者は N Suite モバイルアプリの
+            MPC秘密鍵のエクスポート画面でこの公開鍵を入力します。
         </p>
         <div class="w-full rounded-md bg-back-lightGray p-3">
             <p class="m-0 mb-1 text-center text-xs font-bold text-fore-gray">
-                受取用公開鍵
+                取出用公開鍵
             </p>
             <code class="block max-h-20 overflow-y-auto break-all
                          text-center text-xs leading-relaxed">
@@ -117,12 +118,14 @@
             <p class="m-0 mb-1 text-xs font-bold text-fore-gray">
                 Fingerprint
             </p>
-            <code class="text-sm">{fingerprint}</code>
+            <Fingerprint {fingerprint} id="popup-fingerprint"/>
             <p class="m-0 mt-1 text-xs leading-relaxed text-fore-gray">
                 公開鍵を渡した経路とは別の経路（電話・対面など）で
                 読み合わせ、モバイルアプリの表示と一致することを
                 確認してください。公開鍵自体は秘密情報ではありませんが、
                 受け渡し経路でのすり替えを検知するためにこの照合が必要です。
+                短縮表示は 32bit のため、厳密に照合する場合は全桁を表示して
+                突き合わせてください。
             </p>
         </div>
         <div class="flex gap-2">

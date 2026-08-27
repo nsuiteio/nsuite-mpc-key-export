@@ -1,6 +1,7 @@
 <script>
     import {onDestroy} from 'svelte'
     import * as app from '../../wailsjs/go/main/App.js'
+    import Fingerprint from '../components/Fingerprint.svelte'
     import {
         ClipboardGetText,
         ClipboardSetText,
@@ -10,7 +11,7 @@
     let keyPairInfo = null // { fingerprint, filePath }
     let keyPairError = ''
 
-    // ---- Step 2: zip の復号（root 鍵の復元） ----
+    // ---- Step 2: 暗号化ウォレット秘密鍵ファイルの復号（root 鍵の復元） ----
     let restoring = false
     let restored = false
     let restoreError = ''
@@ -87,7 +88,7 @@
             resetDerived()
             await loadAddresses()
         } catch (e) {
-            // キーペア不一致・zip 復号失敗などはここに出る。
+            // キーペア不一致・復号失敗などはここに出る。
             // バックエンド側で復元済みroot鍵は破棄されているため、
             // 画面状態も復元前に戻す（成功表示とStep 3を残さない）。
             restored = false
@@ -271,8 +272,8 @@
             ウォレット秘密鍵の復元
         </h2>
         <p class="mt-2 text-sm leading-relaxed text-fore-gray">
-            受取用キーペアファイルとエクスポート zip の 2
-            つのファイルを入力に、ウォレットの root
+            取出用キーペアファイルと暗号化ウォレット秘密鍵ファイル（zip）の
+            2 つのファイルを入力に、ウォレットの root
             鍵をメモリ上でのみ復元し、アドレスを確認したうえで秘密鍵を取り出します。
             復元結果はこのアプリのどこにも保存されず、終了するとすべて消えます。
         </p>
@@ -281,10 +282,11 @@
     <div class="rounded-xl border border-informational-main
                 bg-informational-light p-4 text-sm leading-relaxed
                 text-fore-black">
-        <strong>バックアップ検証として使う場合:</strong>
+        <strong>復元リハーサルとして使う場合:</strong>
         Step 3 のアドレス確認まで行い、導出されたアドレスが N Suite
-        上のウォレットアドレスと一致することを確認できれば、バックアップは
-        正しく復元可能です。秘密鍵の表示までは行わずに終了してください。
+        上のウォレットアドレスと一致すれば、暗号化ウォレット秘密鍵ファイル
+        から正しく復元できることを確認できます。秘密鍵の表示までは
+        行わずに終了してください。
     </div>
 
     <!-- ステップ表示 -->
@@ -308,7 +310,7 @@
             </span>
             <span class="{keyPairInfo && !restored
                 ? 'font-bold text-fore-black'
-                : 'text-fore-gray'}">zip の復号（root 鍵の復元）</span>
+                : 'text-fore-gray'}">ファイルの復号（root 鍵の復元）</span>
         </div>
         <span class="h-px w-8 bg-fore-line"></span>
         <div class="flex items-center gap-2">
@@ -325,11 +327,11 @@
     <!-- Step 1 -->
     <div class="rounded-xl border border-fore-line bg-fore-white p-6 shadow-sm">
         <h3 class="m-0 text-base font-bold text-fore-black">
-            Step 1. 受取用キーペアファイルを選択する
+            Step 1. 取出用キーペアファイルを選択する
         </h3>
         <p class="mt-1 mb-4 text-xs leading-relaxed text-fore-gray">
-            キーペア担当者から受け取ったキーペアファイル（*.nstkey）を
-            選択してください。
+            エクスポート準備担当者から受け取ったキーペアファイル
+            （*.nstkey）を選択してください。
         </p>
         <button
             class="cursor-pointer rounded-lg bg-brand-main px-5 py-2
@@ -346,9 +348,11 @@
                 </div>
                 <code class="break-all text-xs">{keyPairInfo.filePath}</code>
                 <div class="mt-2 text-xs font-bold text-fore-gray">
-                    Fingerprint（鍵ペア生成時の記録と一致することを確認してください）
+                    Fingerprint（キーペア生成時の記録と一致することを確認してください）
                 </div>
-                <code class="break-all text-sm">{keyPairInfo.fingerprint}</code>
+                <Fingerprint
+                    fingerprint={keyPairInfo.fingerprint}
+                    id="keypair-fingerprint"/>
             </div>
         {/if}
         {#if keyPairError}
@@ -363,12 +367,13 @@
         <div class="rounded-xl border border-fore-line bg-fore-white p-6
                     shadow-sm">
             <h3 class="m-0 text-base font-bold text-fore-black">
-                Step 2. エクスポートした zip を選択して復号する
+                Step 2. 暗号化ウォレット秘密鍵ファイルを選択して復号する
             </h3>
             <p class="mt-1 mb-4 text-xs leading-relaxed text-fore-gray">
-                N Suite のエクスポートでダウンロードした zip
-                ファイルを選択してください。3 つの KeyShare から root
-                鍵をメモリ上に復元します。
+                N Suite のエクスポートでダウンロードした暗号化ウォレット
+                秘密鍵ファイル（zip）を選択してください。3 つの署名鍵
+                （KeyShare）から root 鍵（ウォレット秘密鍵）を
+                メモリ上に復元します。
             </p>
             <button
                 class="cursor-pointer rounded-lg bg-brand-main px-5 py-2
@@ -376,7 +381,7 @@
                        hover:bg-brand-dark disabled:cursor-not-allowed
                        disabled:opacity-50"
                 disabled={restoring || busy} on:click={restoreFromZip}>
-                {restoring ? '復号中...' : 'zip ファイルを選択して復号'}
+                {restoring ? '復号中...' : 'ファイルを選択して復号'}
             </button>
             {#if restored}
                 <p class="mt-3 text-sm text-fore-black">

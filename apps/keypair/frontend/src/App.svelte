@@ -7,7 +7,7 @@
                    bg-fore-white px-6 py-3 shadow-sm">
         <span class="inline-block h-3 w-3 rounded-full bg-brand-main"></span>
         <h1 class="m-0 text-base font-bold text-fore-black">
-            N Suite MPC Key Export — 受取用キーペア生成
+            N Suite MPC Key Export — エクスポート準備（取出用キーペアの生成）
         </h1>
     </header>
 

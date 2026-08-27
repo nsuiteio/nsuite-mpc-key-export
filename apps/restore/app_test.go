@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/decred/dcrd/dcrec/edwards/v2"
@@ -38,12 +39,12 @@ func stubOpenDialog(app *App, path string) {
 	}
 }
 
-// writeFixtureKeyPairFile はフィクスチャの受取用キーペアをファイルに書き出す。
+// writeFixtureKeyPairFile はフィクスチャの取出用キーペアをファイルに書き出す。
 func writeFixtureKeyPairFile(t *testing.T, dir string) string {
 	t.Helper()
 	prv, err := testfixture.RSAPrivateKey()
 	require.NoError(t, err)
-	path := filepath.Join(dir, "receiving-keypair.nstkey")
+	path := filepath.Join(dir, "nsuite-mpc-extraction-keypair-ABCD1234.nstkey")
 	require.NoError(
 		t,
 		os.WriteFile(path, keypairfile.Encode(prv), 0600),
@@ -51,7 +52,8 @@ func writeFixtureKeyPairFile(t *testing.T, dir string) string {
 	return path
 }
 
-// writeFixtureZip はフィクスチャのエクスポートzipをファイルに書き出す。
+// writeFixtureZip はフィクスチャの暗号化ウォレット秘密鍵ファイル（zip）を
+// ファイルに書き出す。
 func writeFixtureZip(t *testing.T, dir string) string {
 	t.Helper()
 	path := filepath.Join(dir, "keyshares.zip")
@@ -107,6 +109,8 @@ func TestChooseKeyPairFile(t *testing.T) {
 		prv, err := testfixture.RSAPrivateKey()
 		require.NoError(t, err)
 		pubkeyBs := prv.PublicKey().MarshalToBytes()
+		// 表示の短縮はフロント側の責務。バックエンドは公開鍵すり替え検知に
+		// 必要な全長（64桁）を返す。
 		assert.Equal(
 			t,
 			exportpubkey.FormatFingerprint(
@@ -114,7 +118,36 @@ func TestChooseKeyPairFile(t *testing.T) {
 			),
 			got.Fingerprint,
 		)
+		assert.Len(t, strings.ReplaceAll(got.Fingerprint, " ", ""), 64)
 		assert.Equal(t, path, got.FilePath)
+	})
+
+	// ファイル名の命名規則を変更する前（receiving-keypair.nstkey）に保存された
+	// ファイルも開けること。読み込みはファイル名でなく Magic ヘッダーで判定し、
+	// 保存フォーマット自体は変更していないため互換が保たれる。
+	t.Run("正常系_旧命名のファイルもそのまま読み込める", func(t *testing.T) {
+		app := newTestApp(t)
+		prv, err := testfixture.RSAPrivateKey()
+		require.NoError(t, err)
+		path := filepath.Join(t.TempDir(), "receiving-keypair.nstkey")
+		require.NoError(
+			t,
+			os.WriteFile(path, keypairfile.Encode(prv), 0600),
+		)
+		stubOpenDialog(app, path)
+
+		got, err := app.ChooseKeyPairFile()
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		assert.Equal(
+			t,
+			exportpubkey.FormatFingerprint(
+				exportpubkey.Fingerprint(
+					prv.PublicKey().MarshalToBytes(),
+				),
+			),
+			got.Fingerprint,
+		)
 	})
 
 	t.Run("正常系_選択キャンセルはnilを返す", func(t *testing.T) {

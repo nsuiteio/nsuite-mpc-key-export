@@ -18,7 +18,7 @@ import (
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
 )
 
-// App は受取用キーペア生成アプリ（担当者A用）。
+// App は取出用キーペア生成アプリ（エクスポート準備担当者用）。
 // 鍵素材はユーザーが明示的に選んだファイルにのみ書き出し、
 // アプリ自身は何も永続化しない。
 type App struct {
@@ -50,7 +50,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = logutil.Setup(ctx, a.config.Name)
 }
 
-// GeneratedKeyPair は鍵ペアの公開鍵情報。すべて同一の公開鍵から生成される。
+// GeneratedKeyPair はキーペアの公開鍵情報。すべて同一の公開鍵から生成される。
 type GeneratedKeyPair struct {
 	QRImage      string `json:"qrImage"`
 	Fingerprint  string `json:"fingerprint"`
@@ -58,7 +58,7 @@ type GeneratedKeyPair struct {
 	FilePath     string `json:"filePath"`
 }
 
-// GenerateKeyPair は受取用キーペアを新規生成し、ユーザーが選んだ保存先へ
+// GenerateKeyPair は取出用キーペアを新規生成し、ユーザーが選んだ保存先へ
 // キーペアファイルとして書き出す。保存がキャンセルされた場合は何も残さず
 // nil を返す（フロント側は無操作として扱う）。
 func (a *App) GenerateKeyPair() (*GeneratedKeyPair, error) {
@@ -75,10 +75,20 @@ func (a *App) GenerateKeyPair() (*GeneratedKeyPair, error) {
 		return nil, err
 	}
 
+	// 鍵はダイアログ表示より前に生成済みなので、その公開鍵から短縮
+	// フィンガープリントを算出して初期ファイル名に埋め込める。
+	shortFingerprint := exportpubkey.ShortFingerprint(
+		exportpubkey.Fingerprint(
+			privateKey.PublicKey().MarshalToBytes(),
+		),
+	)
+
 	path, err := a.saveFileDialog(
 		ctx, runtime.SaveDialogOptions{
-			Title:           "キーペアファイルの保存先を選択してください",
-			DefaultFilename: keypairfile.DefaultFileName,
+			Title: "キーペアファイルの保存先を選択してください",
+			DefaultFilename: keypairfile.BuildFileName(
+				shortFingerprint,
+			),
 			Filters: []runtime.FileFilter{
 				{
 					DisplayName: "キーペアファイル (*" +

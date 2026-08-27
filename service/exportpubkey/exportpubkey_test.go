@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
@@ -70,5 +71,65 @@ func TestFormatFingerprint(t *testing.T) {
 		"712B C556 1826 C0C6 0B50 F1E8 3F14 7FBB"
 	if got := FormatFingerprint(fp); got != want {
 		t.Errorf("got %q want %q", got, want)
+	}
+}
+
+// ShortFingerprint はファイル名用の短縮値（先頭 8 文字・大文字）を返すこと。
+// 表示用の 4 文字区切りは FormatFingerprint との組み合わせで得る。
+func TestShortFingerprint(t *testing.T) {
+	const fp = "f570c28f4ae12d3cc47a09041190afce" +
+		"712bc5561826c0c60b50f1e83f147fbb"
+	if got := ShortFingerprint(fp); got != "F570C28F" {
+		t.Errorf("got %q want %q", got, "F570C28F")
+	}
+	// 表示用（ABCD EFGH 形式）は既存関数との組み合わせで得られること。
+	if got := FormatFingerprint(ShortFingerprint(fp)); got != "F570 C28F" {
+		t.Errorf("got %q want %q", got, "F570 C28F")
+	}
+}
+
+// 8 文字未満の異常値でもパニックせず、入力を大文字化して返すこと
+// （ファイル名生成が鍵生成後の唯一の失敗点にならないようにする）。
+func TestShortFingerprint_ShortInput(t *testing.T) {
+	cases := map[string]string{
+		"":         "",
+		"ab":       "AB",
+		"abcdef":   "ABCDEF",
+		"abcdefgh": "ABCDEFGH",
+	}
+	for in, want := range cases {
+		if got := ShortFingerprint(in); got != want {
+			t.Errorf("ShortFingerprint(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// ファイル名に使うため、出力は hex（0-9A-F）のみであること。
+func TestShortFingerprint_FileNameSafe(t *testing.T) {
+	input := []byte("nst-mpc-key-export file name safety")
+	got := ShortFingerprint(Fingerprint(input))
+	if len(got) != 8 {
+		t.Fatalf("length must be 8: got %d (%q)", len(got), got)
+	}
+	for _, r := range got {
+		if !strings.ContainsRune("0123456789ABCDEF", r) {
+			t.Errorf("non-hex rune %q in %q", r, got)
+		}
+	}
+}
+
+// 短縮値は 32bit しかないため、先頭 8 桁が同じでも別の公開鍵であり得る。
+// 短縮値は「読み上げ照合用の表示」に限定し、同一性の判定に使わないこと。
+// 厳密な照合は全長（64 桁）で行う。
+func TestShortFingerprint_CollisionIsNotIdentity(t *testing.T) {
+	const a = "f570c28f4ae12d3cc47a09041190afce" +
+		"712bc5561826c0c60b50f1e83f147fbb"
+	const b = "f570c28f0000000000000000000000000" +
+		"0000000000000000000000000000000"
+	if ShortFingerprint(a) != ShortFingerprint(b) {
+		t.Fatal("test premise broken: short values must collide here")
+	}
+	if FormatFingerprint(a) == FormatFingerprint(b) {
+		t.Error("full fingerprints must stay distinguishable")
 	}
 }

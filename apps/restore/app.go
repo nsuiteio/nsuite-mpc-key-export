@@ -22,8 +22,9 @@ import (
 	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
 )
 
-// App はウォレット秘密鍵復元アプリ（担当者B用）。
-// 担当者Aのキーペアファイルと担当者Bのエクスポートzipを入力に、
+// App はウォレット秘密鍵復元アプリ（エクスポート実行者用）。
+// エクスポート準備担当者のキーペアファイルと
+// 暗号化ウォレット秘密鍵ファイル（zip）を入力に、
 // メモリ上でのみroot鍵を復元する。復元結果は一切永続化せず、
 // アプリを終了するとすべて消える。
 type App struct {
@@ -62,15 +63,15 @@ func (a *App) startup(ctx context.Context) {
 }
 
 // KeyPairInfo は選択したキーペアファイルの公開鍵情報。
-// フィンガープリントを鍵ペア生成時の記録と目視照合するために返す。
+// フィンガープリントをキーペア生成時の記録と目視照合するために返す。
 type KeyPairInfo struct {
 	Fingerprint string `json:"fingerprint"`
 	FilePath    string `json:"filePath"`
 }
 
-// ChooseKeyPairFile は担当者Aのキーペアファイルを選択して読み込む。
-// 選び直した場合、前のキーペアで復元したroot鍵は破棄する
-// （鍵とzipの対応を取り違えたまま導出させないため）。
+// ChooseKeyPairFile はエクスポート準備担当者のキーペアファイルを選択して
+// 読み込む。選び直した場合、前のキーペアで復元したroot鍵は破棄する
+// （鍵とファイルの対応を取り違えたまま導出させないため）。
 func (a *App) ChooseKeyPairFile() (*KeyPairInfo, error) {
 	ctx := a.ctx
 	logger := logutil.Get(ctx).With(
@@ -123,8 +124,9 @@ func (a *App) ChooseKeyPairFile() (*KeyPairInfo, error) {
 	}, nil
 }
 
-// ChooseKeyShares はエクスポートzipを選択し、キーペアで復号して
-// root鍵をメモリ上に復元する。成功時は"OK"、キャンセル時は空文字を返す。
+// ChooseKeyShares は暗号化ウォレット秘密鍵ファイル（zip）を選択し、
+// キーペアで復号してroot鍵をメモリ上に復元する。
+// 成功時は"OK"、キャンセル時は空文字を返す。
 func (a *App) ChooseKeyShares() (string, error) {
 	ctx := a.ctx
 	logger := logutil.Get(ctx).With(
@@ -142,10 +144,10 @@ func (a *App) ChooseKeyShares() (string, error) {
 
 	file, err := a.openFileDialog(
 		ctx, runtime.OpenDialogOptions{
-			Title: "エクスポートzipファイルを選択してください",
+			Title: "暗号化ウォレット秘密鍵ファイル（zip）を選択してください",
 			Filters: []runtime.FileFilter{
 				{
-					DisplayName: "ZIPファイル (*.zip)",
+					DisplayName: "暗号化ウォレット秘密鍵ファイル (*.zip)",
 					Pattern:     "*.zip",
 				},
 			},
@@ -253,7 +255,7 @@ func (a *App) GetPrivateKey(
 
 // DeriveAddress は復元済みのroot鍵から、指定されたcurve種別とHDPath indexで
 // 子アドレス（ECDSA=EVM, EdDSA=Solana）を導出して返す。取り出し前の宛先確認と、
-// バックアップ検証（N Suite上のウォレットアドレスとの一致確認）に使う。
+// 復元リハーサル（N Suite上のウォレットアドレスとの一致確認）に使う。
 func (a *App) DeriveAddress(
 	keyType string,
 	index int32,

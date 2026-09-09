@@ -14,10 +14,14 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
+      # @latest はツール側の go 要求バージョンが上がった時点で CI を止める。
+      # x/tools v0.50.0（2026-09-08 公開）が go>=1.26 を要求して実際に発火し、
+      # GOTOOLCHAIN=local のため toolchain を上げられず format が失敗した。
+      # goimports はどこからも呼ばれていなかったため削除している
+      # （Check format は golines のみ、golines が内部で呼ぶのは gofmt）
       - name: Install formatters
         run: |
-          go install golang.org/x/tools/cmd/goimports@latest
-          go install github.com/segmentio/golines@latest
+          go install github.com/segmentio/golines@v0.13.0
       - name: Check format
         run: if [ "$((golines --max-len=80 --dry-run . | tee /dev/stderr) | wc -l)" -gt 0 ]; then exit 1; fi
 

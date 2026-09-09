@@ -34,13 +34,23 @@ jobs:
         run: task build
 
       # アプリ分割後は成果物が apps/*/build/bin に出力される。
-      # リリース tar の構成を従来どおり平坦に保つため1箇所へ集約する
+      # リリース tar の構成を従来どおり平坦に保つため1箇所へ集約する。
+      # 成果物名は wails.json の outputfilename で KeyPairGenerator /
+      # KeyRestore と分かれているため集約しても衝突しない。
+      # upload-artifact の if-no-files-found では「片方だけ空」を検出できない
+      # ので、アプリ単位で成果物の存在を確認する
       - name: Collect build artifacts
         shell: bash
         run: |
           mkdir -p dist
-          cp -R apps/keypair/build/bin/. dist/
-          cp -R apps/restore/build/bin/. dist/
+          for app in keypair restore; do
+            src="apps/$app/build/bin"
+            if [ -z "$(find "$src" -mindepth 1 -print -quit 2>/dev/null)" ]; then
+              echo "::error::$src に成果物がありません"
+              exit 1
+            fi
+            cp -R "$src/." dist/
+          done
           ls -la dist
 
       - uses: actions/upload-artifact@v4

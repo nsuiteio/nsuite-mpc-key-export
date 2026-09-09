@@ -33,11 +33,23 @@ jobs:
       - name: Build Wails app
         run: task build
 
+      # アプリ分割後は成果物が apps/*/build/bin に出力される。
+      # リリース tar の構成を従来どおり平坦に保つため1箇所へ集約する
+      - name: Collect build artifacts
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp -R apps/keypair/build/bin/. dist/
+          cp -R apps/restore/build/bin/. dist/
+          ls -la dist
+
       - uses: actions/upload-artifact@v4
         with:
           name: KeyExport-${{ runner.os }}
           path: |
-            build/bin/*
+            dist/*
+          # 成果物が空のままリリースが作られるのを防ぐ
+          if-no-files-found: error
 
   draft_release:
     needs: build

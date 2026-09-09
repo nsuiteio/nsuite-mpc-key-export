@@ -15,6 +15,11 @@ jobs:
             os: 'windows-latest'
           - platform: 'darwin/universal'
             os: 'macos-latest'
+        app:
+          - name: 'keypair'
+            output: 'KeyPairGenerator'
+          - name: 'restore'
+            output: 'KeyRestore'
     runs-on: ${{ matrix.build.os }}
 
     steps:
@@ -29,10 +34,10 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Wails app
-        run: task build
+        run: task build-${{ matrix.app.name }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: KeyExport-${{ runner.os }}
+          name: ${{ matrix.app.output }}-${{ runner.os }}
           path: |
-            build/bin/*
+            apps/${{ matrix.app.name }}/build/bin/*

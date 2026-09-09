@@ -5,12 +5,26 @@ tasks:
     cmd: |
       go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
 
-  build:
+  build-keypair:
     deps:
       - init-wails
+    dir: apps/keypair
     cmd: |
       export PATH=$PATH:$(go env GOPATH)/bin
       wails build
+
+  build-restore:
+    deps:
+      - init-wails
+    dir: apps/restore
+    cmd: |
+      export PATH=$PATH:$(go env GOPATH)/bin
+      wails build
+
+  build:
+    deps:
+      - build-keypair
+      - build-restore
 
   test:
     deps:
@@ -18,9 +32,18 @@ tasks:
     cmd: |
       go test -json ./...
 
-  run:
+  run-keypair:
     deps:
-      - build
+      - build-keypair
+    dir: apps/keypair
+    cmd: |
+      export PATH=$PATH:$(go env GOPATH)/bin
+      wails dev
+
+  run-restore:
+    deps:
+      - build-restore
+    dir: apps/restore
     cmd: |
       export PATH=$PATH:$(go env GOPATH)/bin
       wails dev

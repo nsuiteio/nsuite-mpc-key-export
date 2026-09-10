@@ -30,7 +30,12 @@ jobs:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # matrix の platform を wails build へ渡す。wails-build-action を廃止した
+      # 642e7a1 以降この値はどこにも渡っておらず、macOS 成果物が runner の
+      # arm64 単独になっていた（Intel Mac では起動できない）。
       - name: Build Wails app
+        env:
+          WAILS_BUILD_FLAGS: -platform ${{ matrix.build.platform }}
         run: task build
 
       # アプリ分割後は成果物が apps/*/build/bin に出力される。
@@ -53,11 +58,142 @@ jobs:
           done
           ls -la dist
 
+      # 署名用 Secrets が未設定のうちは署名工程を丸ごと飛ばし、従来どおり
+      # 未署名で公開する。Secrets が揃った時点で自動的に署名が有効になる。
+      - name: Check macOS signing secrets
+        id: signing
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          missing=""
+          for name in MACOS_CERTIFICATE_BASE64 MACOS_CERTIFICATE_PASSWORD \
+                      MACOS_SIGNING_IDENTITY ASC_API_KEY_BASE64 \
+                      ASC_API_KEY_ID ASC_API_ISSUER_ID; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Developer ID 署名用 Secrets が未設定のため署名と公証を省略します（未設定:$missing）"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Developer ID の秘密鍵を一時キーチェーンへ取り込む。login キーチェーンを
+      # 汚さないよう $RUNNER_TEMP に作り、ジョブ終了とともに破棄させる。
+      - name: Import Developer ID certificate
+        if: runner.os == 'macOS' && steps.signing.outputs.enabled == 'true'
+        shell: bash
+        env:
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          set -u
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(uuidgen)"
+          cert="$RUNNER_TEMP/developer-id.p12"
+
+          printf '%s' "$MACOS_CERTIFICATE_BASE64" | base64 --decode > "$cert"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$cert" -k "$keychain" -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+          # codesign がパスワード入力を求めずに秘密鍵を使えるようにする
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$keychain_password" "$keychain" > /dev/null
+          existing="$(security list-keychains -d user | tr -d '"' | tr -s ' ' ' ')"
+          # 既存の検索リストを保ったまま先頭に一時キーチェーンを足すため、
+          # $existing は意図的に単語分割させる
+          # shellcheck disable=SC2086
+          security list-keychains -d user -s "$keychain" $existing
+          rm -f "$cert"
+
+          security find-identity -v -p codesigning "$keychain"
+
+      # Wails が付ける ad-hoc 署名（Go リンカ由来）を Developer ID 署名で
+      # 置き換えるため --force が要る。バンドル内に入れ子のコード資産は無いので
+      # --deep は使わず .app 単体へ署名する。公証には hardened runtime が必須。
+      - name: Sign macOS apps
+        if: runner.os == 'macOS' && steps.signing.outputs.enabled == 'true'
+        shell: bash
+        env:
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          set -u
+          for app in dist/*.app; do
+            echo "::group::sign $app"
+            codesign --force --timestamp --options runtime \
+              --sign "$MACOS_SIGNING_IDENTITY" "$app"
+            codesign --verify --strict --verbose=2 "$app"
+            codesign --display --verbose=4 "$app"
+            echo "::endgroup::"
+          done
+
+      # notarytool は .app を直接受け付けないため zip にして提出する。
+      # 提出後 stapler で ticket を Contents/CodeResources に埋め込むと、
+      # 利用者のマシンがオフラインでも Gatekeeper の検証が通る。
+      - name: Notarize and staple macOS apps
+        if: runner.os == 'macOS' && steps.signing.outputs.enabled == 'true'
+        shell: bash
+        env:
+          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          set -u
+          key="$RUNNER_TEMP/asc-api-key.p8"
+          printf '%s' "$ASC_API_KEY_BASE64" | base64 --decode > "$key"
+          trap 'rm -f "$key"' EXIT
+
+          for app in dist/*.app; do
+            name="$(basename "$app" .app)"
+            zip="$RUNNER_TEMP/$name.zip"
+            echo "::group::notarize $app"
+            ditto -c -k --keepParent "$app" "$zip"
+            result="$(xcrun notarytool submit "$zip" \
+              --key "$key" --key-id "$ASC_API_KEY_ID" \
+              --issuer "$ASC_API_ISSUER_ID" --wait --output-format json)"
+            echo "$result"
+            status="$(printf '%s' "$result" | jq -r '.status')"
+            if [ "$status" != "Accepted" ]; then
+              submission="$(printf '%s' "$result" | jq -r '.id')"
+              echo "::error::$name の公証に失敗しました (status=$status)"
+              xcrun notarytool log "$submission" --key "$key" \
+                --key-id "$ASC_API_KEY_ID" --issuer "$ASC_API_ISSUER_ID" || true
+              exit 1
+            fi
+            xcrun stapler staple "$app"
+            xcrun stapler validate "$app"
+            # 公証済みなら Gatekeeper の事前評価も通るはず
+            spctl --assess --type execute --verbose=2 "$app"
+            echo "::endgroup::"
+          done
+
+      # 圧縮を各 runner 上で行う。upload-artifact は実行ビットを保存しないため、
+      # 従来は draft_release 側で全ファイルへ chmod +x を掛け直していた。
+      # 署名・公証済みバンドルの属性をそのまま渡すには tar 化を先に済ませる。
+      # COPYFILE_DISABLE=1 は macOS tar が ._ ファイルを混ぜるのを防ぐ。
+      - name: Archive artifacts
+        shell: bash
+        env:
+          COPYFILE_DISABLE: '1'
+        run: |
+          set -u
+          target="KeyExport-${{ runner.os }}.tar.gz"
+          ( cd dist && tar czf "../$target" -- * )
+          ls -la "$target"
+
       - uses: actions/upload-artifact@v4
         with:
           name: KeyExport-${{ runner.os }}
-          path: |
-            dist/*
+          path: KeyExport-${{ runner.os }}.tar.gz
           # 成果物が空のままリリースが作られるのを防ぐ
           if-no-files-found: error
 
@@ -102,23 +238,15 @@ jobs:
           git push origin $TAG_NAME
 
       - uses: actions/download-artifact@v4
-      - name: Archive
+        with:
+          path: artifacts
+
+      # tar 化は各 runner 上で済んでいるので、ここでは集めるだけにする。
+      - name: Collect release archives
         run: |
-          ls -la *
-          for dir in KeyExport-*
-          do
-            target=$(basename $dir).tar.gz
-            echo "making $target"
-            pushd $dir
-            for file in $(find . -type f)
-            do
-              ls -la $file
-              chmod +x $file
-            done
-            tar czf ../$target *
-            popd
-          done
-          ls -la *
+          set -u
+          find artifacts -name 'KeyExport-*.tar.gz' -exec mv {} . \;
+          ls -la KeyExport-*.tar.gz
 
       - uses: softprops/action-gh-release@v2
         with:

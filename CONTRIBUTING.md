@@ -134,6 +134,19 @@ To cut a release:
 The release binaries are **not code-signed or notarized**. Users have to bypass
 Gatekeeper and SmartScreen on first launch; [README.md](README.md) documents how.
 
+Two known gaps in the release pipeline, both verified against the v1.0.1 assets:
+
+- **The macOS artifact is arm64 only, not universal.** The build matrix carries a
+  `platform: 'darwin/universal'` value, but the build step runs `task build`,
+  which never passes `-platform` to `wails build`. The matrix value is therefore
+  unused, and the binary is whatever the `macos-latest` runner produces.
+- **The macOS app bundle has no valid signature.** `wails build` applies the Go
+  linker's ad-hoc signature to the executable only and does not seal the bundle,
+  so `codesign --verify --strict` fails with `code has no resources but signature
+  indicates they must be present`. With the quarantine flag set, Gatekeeper
+  reports this as "damaged" rather than "unsigned", which is why the README tells
+  users to clear quarantine instead of using right-click Open.
+
 ## Reporting security issues
 
 Do not open a public issue for a vulnerability. See [SECURITY.md](SECURITY.md).

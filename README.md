@@ -28,8 +28,11 @@ Get the archive for your OS from the
 
 | File | OS |
 |---|---|
-| `KeyExport-macOS.tar.gz` | macOS (universal: Intel and Apple Silicon) |
+| `KeyExport-macOS.tar.gz` | macOS on Apple Silicon (arm64) |
 | `KeyExport-Windows.tar.gz` | Windows (x64) |
+
+The macOS archive is arm64 only; it will not run on an Intel Mac. On an Intel
+Mac, build from source instead — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 **Both archives contain both apps.** After extracting, use only the app that
 matches your role:
@@ -44,12 +47,19 @@ time you open them. Use the steps below.
 
 **macOS**
 
-If you see "cannot be opened because the developer cannot be verified",
-right-click (or Control-click) the app, choose **Open**, then confirm with
-**Open** in the dialog. To clear the quarantine flag from a terminal instead:
+macOS reports the app as **damaged**: *"KeyPairGenerator.app" is damaged and
+can't be opened. You should move it to the Trash.*
+
+**The download is not corrupted, and you should not move it to the Trash.** The
+app bundle is not code-signed, and macOS words that as "damaged" once the file
+carries the quarantine flag it gets from being downloaded. Note that the
+right-click **Open** trick does not help here, because this dialog offers no
+Open option at all.
+
+Clear the quarantine flag from a terminal, then open the app normally:
 
 ```sh
-xattr -d com.apple.quarantine KeyPairGenerator.app
+xattr -dr com.apple.quarantine KeyPairGenerator.app
 ```
 
 **Windows**

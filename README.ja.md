@@ -26,8 +26,11 @@ N Suite の MPC ウォレット秘密鍵を、オフラインでエクスポー�
 
 | ファイル | 対応 OS |
 |---|---|
-| `KeyExport-macOS.tar.gz` | macOS（Intel / Apple Silicon 共通） |
+| `KeyExport-macOS.tar.gz` | macOS（Apple Silicon / arm64） |
 | `KeyExport-Windows.tar.gz` | Windows（x64） |
+
+macOS 版は arm64 のみで、Intel Mac では動作しません。Intel Mac では
+ソースからビルドしてください（[CONTRIBUTING.md](CONTRIBUTING.md) 参照）。
 
 どちらのアーカイブにも **2 つのアプリが同梱**されています。展開後、自分の役割に
 対応するアプリだけを使ってください。
@@ -42,12 +45,18 @@ N Suite の MPC ウォレット秘密鍵を、オフラインでエクスポー�
 
 **macOS**
 
-「開発元を検証できないため開けません」と表示された場合、アプリを右クリック（または
-Control キーを押しながらクリック）して「開く」を選び、続く確認で「開く」を押します。
-コマンドラインで解除する場合は次のとおりです。
+macOS では「**壊れているため開けません。ゴミ箱に入れる必要があります。**」と
+表示されます。
+
+**ダウンロードが破損しているのではなく、ゴミ箱に入れる必要もありません。**
+アプリにコード署名がないため、ダウンロード時に付く quarantine 属性と組み合わさると
+macOS が「壊れている」と表現します。この表示では「開く」の選択肢自体が出ないため、
+右クリック→「開く」では回避できません。
+
+次のコマンドで quarantine 属性を外してから、通常どおり起動してください。
 
 ```sh
-xattr -d com.apple.quarantine KeyPairGenerator.app
+xattr -dr com.apple.quarantine KeyPairGenerator.app
 ```
 
 **Windows**

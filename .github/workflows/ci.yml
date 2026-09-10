@@ -14,12 +14,21 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
+      # @latest はツール側の go 要求バージョンが上がった時点で CI を止める。
+      # x/tools v0.50.0（2026-09-08 公開）が go>=1.26 を要求して実際に発火し、
+      # GOTOOLCHAIN=local のため toolchain を上げられず format が失敗した。
+      #
+      # goimports は golines が exec.LookPath で暗黙に参照する。golines v0.13.0 は
+      # --base-formatter 未指定時、PATH に goimports があればそれを、無ければ
+      # gofmt をベースフォーマッタに選ぶ（shortener.go の NewShortener）。
+      # つまり goimports の有無で import グループ分けの検査結果が変わるため、
+      # インストールを残した上で --base-formatter も明示して基準を固定する。
       - name: Install formatters
         run: |
-          go install golang.org/x/tools/cmd/goimports@latest
-          go install github.com/segmentio/golines@latest
+          go install golang.org/x/tools/cmd/goimports@v0.49.0
+          go install github.com/segmentio/golines@v0.13.0
       - name: Check format
-        run: if [ "$((golines --max-len=80 --dry-run . | tee /dev/stderr) | wc -l)" -gt 0 ]; then exit 1; fi
+        run: if [ "$((golines --base-formatter=goimports --max-len=80 --dry-run . | tee /dev/stderr) | wc -l)" -gt 0 ]; then exit 1; fi
 
   lint:
     runs-on: ubuntu-arm64-2core

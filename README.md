@@ -1,164 +1,185 @@
 # nst-mpc-key-export
 
-N Suite の MPC 秘密鍵をエクスポート・復元するためのオフライン専用ツール群です。
-[Wails](https://wails.io/) で動作します。
+English | [日本語](README.ja.md)
 
-## MPC 秘密鍵のエクスポート全体像
+Two offline desktop applications for exporting and restoring the MPC wallet
+private keys held in [N Suite](https://nsuite.io/). Neither application performs
+any network communication.
 
-1. **エクスポート準備**（本ツール `apps/keypair`）: 取出用キーペアを生成し、
-   取出用公開鍵をエクスポート実行者に渡す。
-2. **暗号化ウォレット秘密鍵ファイルの作成**（N Suite モバイルアプリ）:
-   取出用公開鍵を入力し、署名鍵（KeyShare）を暗号化する。
-3. **ダウンロード**（N Board）: 暗号化ウォレット秘密鍵ファイル（zip）を
-   ダウンロードして保管する。
-4. **復元・取り出し**（本ツール `apps/restore`）: キーペアファイルと
-   暗号化ウォレット秘密鍵ファイルからウォレット秘密鍵を復元・取り出す。
+Restoring a wallet private key requires **both** a key pair file and an encrypted
+wallet private key file. The tools are designed around a 2-of-2 separation model:
+**two different people hold the two files in two different places.**
 
-**役割の異なる 2 つのアプリ**で構成されます。復元の成立要件である
-「取出用キーペアファイル」と「暗号化ウォレット秘密鍵ファイル」を
-**別々の担当者が別々に保管する**運用（2-of-2 の分離保管）を前提としています。
+## Two apps, two roles
 
-| アプリ | 想定利用者 | 役割 |
+| App | Intended user | Role |
 |---|---|---|
-| `apps/keypair`（KeyPairGenerator） | エクスポート準備担当者（A） | 取出用キーペアの生成・ファイル保存・公開鍵の受け渡し |
-| `apps/restore`（KeyRestore） | エクスポート実行者（B） | 暗号化ウォレット秘密鍵ファイルとキーペアファイルからウォレット秘密鍵を復元・取り出し |
+| KeyPairGenerator | Export Preparer (A) | Generates the extraction key pair, saves it to a file, and hands the public key over |
+| KeyRestore | Export Operator (B) | Restores and extracts the wallet private key from the encrypted wallet private key file and the key pair file |
 
-### 担当者の役割
+- **Export Preparer (A)** generates and stores the extraction key pair.
+- **Export Operator (B)** creates the encrypted wallet private key file in the
+  N Suite mobile app, downloads it from N Board, and stores it.
 
-- **エクスポート準備担当者（担当者 A）**: 取出用キーペアの生成・保管。
-- **エクスポート実行者（担当者 B）**: モバイルアプリでの暗号化ウォレット秘密鍵
-  ファイルの作成、N Board でのダウンロード、ファイルの保管。
+## Download
 
-## 用語
+Get the archive for your OS from the
+[Releases](https://github.com/nsuiteio/nst-mpc-key-export/releases) page.
 
-- **取出用キーペア**: ウォレット秘密鍵の取り出しに使う RSA-2048 キーペア。
-  公開鍵を N Suite モバイルアプリに渡すと、署名鍵（KeyShare）がこの公開鍵で
-  暗号化される。エクスポート準備担当者がキーペアファイル（`*.nstkey`）として
-  保管する。
-- **暗号化ウォレット秘密鍵ファイル（zip）**: N Board からダウンロードする
-  暗号化済みの署名鍵（FRONT/RECTO/VERSO の 3 パーティ分）。
-  エクスポート実行者が保管する。**ダウンロード完了時点で、このファイルが
-  ウォレット秘密鍵を復元できる唯一の実体**となる（再ダウンロードは不可）。
-- **ウォレット秘密鍵**: 暗号化ウォレット秘密鍵ファイルとキーペアファイルの
-  両方が揃ったときだけ復元できる、資産を直接操作可能な秘密鍵
-  （root 鍵および HDPath 導出された子鍵）。
+| File | OS |
+|---|---|
+| `KeyExport-macOS.tar.gz` | macOS (universal: Intel and Apple Silicon) |
+| `KeyExport-Windows.tar.gz` | Windows (x64) |
 
-## KeyPairGenerator（エクスポート準備：取出用キーペアの生成）
+**Both archives contain both apps.** After extracting, use only the app that
+matches your role:
 
-- 取出用キーペア（RSA-2048）を生成し、ユーザーが選択したファイルにのみ保存する。
-  アプリ自体は何も永続化しない。
-- 公開鍵を hex・QR コード・フィンガープリント（`hex(sha256(pubkeyBytes))`）で
-  表示する。フィンガープリントはエクスポート実行者のモバイルアプリの表示と
-  目視照合する（公開鍵すり替え対策）。
-- **フィンガープリントの表示は読み上げやすい先頭 8 桁（例 `F570 C28F`）を既定と
-  し、「全桁を表示」で 64 桁すべてを展開できる**。短縮値は 32bit しかないため、
-  厳密な照合は必ず全桁で行う（モバイルアプリ側も同じ表示仕様）。
-- 保存ダイアログの初期ファイル名は
-  `nsuite-mpc-extraction-keypair-<短縮フィンガープリント>.nstkey`。
-  暗号化ウォレット秘密鍵ファイル（`nsuite-mpc-export-<短縮フィンガープリント>.zip`）
-  と接頭辞・フィンガープリント部を揃えているため、2 つのファイルの組み合わせを
-  確認する目安になる（短縮値は 32bit で手動リネームもされ得るため、確証には
-  ならない。読み込みはファイル名に依存しないので、旧名で保存済みのファイルも
-  そのまま開ける）。
-- 保存済みキーペアファイルを選択して公開鍵情報を再表示できる
-  （2 回目以降のエクスポート用）。
+- Export Preparer (A) uses `KeyPairGenerator`
+- Export Operator (B) uses `KeyRestore`
 
-### キーペアファイルを暗号化しない理由
+## First launch
 
-キーペアファイルは平文（ヘッダ付き独自形式 `*.nstkey`）で保存されます。
+The released binaries are not code-signed, so your OS will warn you the first
+time you open them. Use the steps below.
 
-- キーペア単体では何もできない（暗号化ウォレット秘密鍵ファイルが揃って初めて
-  ウォレット秘密鍵を復元可能）。主たる統制は**別々の担当者による分離保管**である。
-- 数年後に一度だけ使う災害復旧材料にとって、最大の喪失リスクは攻撃者ではなく
-  「パスワード忘れ」であり、パスワード暗号化は復元の可用性を損なう。
+**macOS**
 
-## KeyRestore（ウォレット秘密鍵の復元）
-
-- キーペアファイルと暗号化ウォレット秘密鍵ファイルを選択し、3 つの署名鍵から
-  root 鍵を**メモリ上でのみ**復元する。
-  復元結果は一切永続化せず、終了すると消える。
-- curve 種別（ECDSA=EVM / EdDSA=Solana）と HDPath index を指定して
-  アドレスを導出・確認したうえで、対応する子秘密鍵を取り出す
-  （MetaMask 等へのインポート用）。秘密鍵は既定でマスク表示、コピーは
-  一定時間後に自動クリアする。
-- **復元リハーサル**: アドレス確認まで行い、N Suite 上のウォレットアドレスと
-  一致することを確認すれば、秘密鍵を表示せずに暗号化ウォレット秘密鍵ファイルの
-  復元可能性を実証できる。
-
-## 保管・運用ルール
-
-- **キーペアファイルと暗号化ウォレット秘密鍵ファイルを同一のストレージ・
-  バックアップ系統に置かない**（同じ共有ドライブ・NAS・クラウドバックアップへの
-  同居が典型的な事故）。各担当者がオフラインメディア（USB 等）で保管することを
-  推奨。
-- 両ファイルが揃うと（キーペアが平文のため）ウォレット秘密鍵を復元できる。
-  どちらか一方の漏洩に気づいたら、ウォレットが N Suite で稼働中であれば
-  新しいキーペアで再エクスポートし、漏洩した世代を無効化する。
-- キーペアファイルの喪失も同様に、N Suite 稼働中であれば再エクスポートで
-  復旧できる。**N Suite の解約前に必ず復元リハーサル（アドレス一致確認）を
-  実施する**こと。解約後はどちらのファイルを失っても復旧手段がない。
-
-## セキュリティ上の重要な注意
-
-**取り出した子秘密鍵は root 鍵と同等の機密として扱ってください。**
-
-N Suite の HDPath 導出は、既存アドレスとの互換性のため非 hardened の BIP32 CKD を
-使用しています。chaincode は root 公開鍵から決定的に計算されるため、root 公開鍵を
-知り得る主体に子秘密鍵が 1 つでも漏洩すると、`rootScalar = childScalar - Σ IL` に
-より root 秘密鍵（＝同グループの全アドレスの秘密鍵）が復元可能です。これは
-N Suite のアドレス体系（MPC 署名時の delta 注入方式）に固有の性質であり、本ツール
-側で hardened 導出へ変更することはできません。取り出し画面では取り出し前にこの
-警告への同意を必須にしています。
-
-## オフライン動作
-
-本ツールは HTTP クライアント・テレメトリ・自動更新を一切持たず、完全にオフラインで
-動作します。鍵素材（取出用秘密鍵・署名鍵の平文・復元結果・導出した秘密鍵）
-はログに出力しません。
-
-## 鍵導出の検証
-
-HDPath 導出は BIP32 CKD（非 hardened）に基づき、外部の公開テストベクタで検証して
-います。
-
-- ECDSA: BIP32 公式テストベクタ 1
-- EdDSA: Fireblocks recovery の公開ベクタ
+If you see "cannot be opened because the developer cannot be verified",
+right-click (or Control-click) the app, choose **Open**, then confirm with
+**Open** in the dialog. To clear the quarantine flag from a terminal instead:
 
 ```sh
-go test ./service/derive/...
+xattr -d com.apple.quarantine KeyPairGenerator.app
 ```
 
-## ビルド手順（再現性）
+**Windows**
 
-想定バージョン（`go.mod` に固定）:
+If SmartScreen shows "Windows protected your PC", choose **More info**, then
+**Run anyway**.
 
-- Go: 1.25 系（`go.mod` の `go` / `toolchain` を正とする）
-- Node.js: 22 系
-- Wails CLI: v2.10（`Taskfile.yml` の `init-wails` が `@v2.10` を導入）
+**Where to run them**
 
-```sh
-# Wails CLI の導入（初回のみ）
-go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
+These tools never talk to the network, but they handle key material. Running
+them on a machine disconnected from any network is **recommended**.
 
-# 両アプリのビルド（内部で wails build を実行し frontend/dist を生成）
-task build
+## End-to-end flow
 
-# 個別ビルド
-task build-keypair
-task build-restore
+1. **Export preparation** (KeyPairGenerator): generate the extraction key pair
+   and hand the extraction public key to the Export Operator.
+2. **Create the encrypted wallet private key file** (N Suite mobile app): enter
+   the extraction public key so the signing keys (KeyShares) are encrypted to it.
+3. **Download** (N Board): download the encrypted wallet private key file (zip)
+   and store it.
+4. **Restore and extract** (KeyRestore): restore the wallet private key from the
+   key pair file plus the encrypted wallet private key file.
 
-# テスト
-task test           # ビルド後に go test ./... を実行
-```
+## Terminology
 
-成果物は `apps/keypair/build/bin/`・`apps/restore/build/bin/` に生成されます
-（Windows 用バイナリは GitHub Actions の Package App ワークフローでもビルド可能）。
+- **Extraction key pair** — the RSA-2048 key pair used to extract a wallet
+  private key. Once its public key is given to the N Suite mobile app, the
+  signing keys (KeyShares) are encrypted to that public key. The Export Preparer
+  stores it as a key pair file (`*.nstkey`).
+- **Encrypted wallet private key file (zip)** — the encrypted signing keys
+  (three parties: FRONT, RECTO, VERSO) downloaded from N Board. The Export
+  Operator stores it. **Once downloaded, this file is the only artifact from
+  which the wallet private key can be restored**; it cannot be downloaded again.
+- **Wallet private key** — the key that directly controls assets (the root key
+  and the child keys derived along an HD path). It can be restored only when both
+  the encrypted wallet private key file and the key pair file are available.
 
-`apps/*/frontend/dist` はビルド生成物のため Git 管理対象外です（`go:embed` の
-対象なので `go build` / `go test` の前に `task build` もしくは各
-`frontend` ディレクトリで `npm install && npm run build` が必要）。
+The app interfaces are in Japanese. The corresponding labels are 取出用キーペア
+(extraction key pair), 暗号化ウォレット秘密鍵ファイル (encrypted wallet private
+key file), and ウォレット秘密鍵 (wallet private key).
 
-## ライセンス
+## Using KeyPairGenerator
 
-[MIT License](LICENSE)。第三者ライブラリのライセンスは
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
+For the Export Preparer (A), to generate an extraction key pair.
+
+- Generates an RSA-2048 extraction key pair and writes it only to the file you
+  choose. The app itself persists nothing.
+- Shows the public key as hex, as a QR code, and as a fingerprint
+  (`hex(sha256(pubkeyBytes))`). Compare the fingerprint against the one shown in
+  the Export Operator's mobile app, by eye, to detect a substituted public key.
+- **The fingerprint defaults to the first 8 digits (for example `F570 C28F`), which
+  are easy to read aloud; "全桁を表示" (show all digits) expands all 64.** The
+  short form carries only 32 bits, so always use the full value for a rigorous
+  comparison. The mobile app shows it the same way.
+- The save dialog defaults to
+  `nsuite-mpc-extraction-keypair-<short-fingerprint>.nstkey`. It shares its
+  prefix and fingerprint segment with the encrypted wallet private key file
+  (`nsuite-mpc-export-<short-fingerprint>.zip`), which helps you spot which two
+  files belong together. Treat this as a hint, not proof: the short value is
+  32 bits and files can be renamed by hand. Loading does not depend on the file
+  name, so files saved under older names still open.
+- You can select a previously saved key pair file to display its public key
+  information again, for a second or later export.
+
+### Why the key pair file is not encrypted
+
+The key pair file is stored in the clear, in a small custom format with a header
+(`*.nstkey`).
+
+- A key pair alone does nothing. A wallet private key can only be restored once
+  the encrypted wallet private key file is also present. The primary control is
+  **separate custody by separate people.**
+- For disaster-recovery material that gets used once, years later, the largest
+  risk of loss is not an attacker but a forgotten password. Password encryption
+  would trade away the availability that recovery depends on.
+
+## Using KeyRestore
+
+For the Export Operator (B), to restore and extract a wallet private key.
+
+- Select the key pair file and the encrypted wallet private key file. The root key
+  is reconstructed from the three signing keys **in memory only**. Nothing about
+  the result is persisted; it is gone when the app exits.
+- Choose the curve (ECDSA for EVM, EdDSA for Solana) and the HD path index,
+  confirm the derived address, then extract the matching child private key for
+  import into a wallet such as MetaMask. Private keys are masked by default, and
+  a copied value is cleared from the clipboard after a short delay.
+- **Restore rehearsal**: stop at the address check. If the derived address matches
+  the wallet address in N Suite, you have proven the encrypted wallet private key
+  file can still be restored, without ever displaying a private key.
+
+## Storage and operational rules
+
+- **Never keep the key pair file and the encrypted wallet private key file in the
+  same storage or the same backup lineage.** Putting both on one shared drive,
+  NAS, or cloud backup is the classic failure. Each holder should keep their file
+  on offline media such as a USB drive.
+- Anyone holding both files can restore the wallet private key, because the key
+  pair is stored in the clear. If you find that either file has leaked, and the
+  wallet is still active in N Suite, export again with a new key pair to retire
+  the leaked generation.
+- A lost key pair file is recoverable the same way, by exporting again while
+  N Suite is still active. **Always complete a restore rehearsal, confirming the
+  address matches, before you terminate your N Suite contract.** After
+  termination, losing either file leaves no path to recovery.
+
+## Critical security note
+
+**Treat an extracted child private key as being exactly as sensitive as the root
+key.**
+
+For compatibility with existing addresses, N Suite derives HD paths using
+non-hardened BIP32 CKD. The chaincode is computed deterministically from the root
+public key, so if a single child private key leaks to a party that can learn the
+root public key, the root private key follows from
+`rootScalar = childScalar - Σ IL` — and with it every address in the group. This
+property is inherent to how N Suite forms addresses (delta injection during MPC
+signing), and these tools cannot switch to hardened derivation. The extraction
+screen therefore requires you to acknowledge this warning before it will proceed.
+
+## Offline by design
+
+These tools ship with no HTTP client, no telemetry, and no auto-update; they run
+fully offline. Key material — extraction private keys, plaintext signing keys,
+restored results, and derived private keys — is never written to logs.
+
+## License
+
+[MIT License](LICENSE). For third-party library licenses, see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+To report a security problem, see [SECURITY.md](SECURITY.md). To build from source
+or contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -2,6 +2,9 @@ version: 3
 
 tasks:
   init-wails:
+    # build から build-keypair / build-restore を順次呼ぶため、
+    # 重複インストールを避けて1回だけ実行する
+    run: once
     cmd: |
       go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
 
@@ -21,10 +24,15 @@ tasks:
       export PATH=$PATH:$(go env GOPATH)/bin
       wails build
 
+  # wails は bindings 生成用バイナリを $TMPDIR/wailsbindings という固定パスに
+  # 作成し、実行後に削除する。このため2アプリを並列ビルドすると互いの一時
+  # ファイルを消し合い、"fork/exec ...wailsbindings.exe: The system cannot
+  # find the file specified." で失敗する（誤った bindings を掴む危険もある）。
+  # deps による並列実行ではなく cmds で必ず直列に実行する。
   build:
-    deps:
-      - build-keypair
-      - build-restore
+    cmds:
+      - task: build-keypair
+      - task: build-restore
 
   test:
     deps:

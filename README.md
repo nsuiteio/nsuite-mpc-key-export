@@ -42,32 +42,75 @@ matches your role:
 
 ## First launch
 
-The released binaries are not code-signed, so your OS will warn you the first
-time you open them. Use the steps below.
+The released binaries are not code-signed, so both macOS and Windows will warn
+you the first time you open them. **Verify what you downloaded before you bypass
+any of these warnings.** The same warning appears whether the cause is the known
+signing gap in these releases or a download that was genuinely corrupted or
+tampered with, and these apps handle key material.
 
-**macOS**
+### Verify the download
 
-macOS reports the app as **damaged**: *"KeyPairGenerator.app" is damaged and
-can't be opened. You should move it to the Trash.*
-
-**The download is not corrupted, and you should not move it to the Trash.** The
-app bundle is not code-signed, and macOS words that as "damaged" once the file
-carries the quarantine flag it gets from being downloaded. Note that the
-right-click **Open** trick does not help here, because this dialog offers no
-Open option at all.
-
-Clear the quarantine flag from a terminal, then open the app normally:
+1. Download only from the official releases page:
+   <https://github.com/nsuiteio/nst-mpc-key-export/releases>
+2. Compare the checksum of your archive against the digest GitHub publishes for
+   that asset. The two values must match, ignoring the `sha256:` prefix.
 
 ```sh
-xattr -dr com.apple.quarantine KeyPairGenerator.app
+# your download
+shasum -a 256 KeyExport-macOS.tar.gz          # macOS
+certutil -hashfile KeyExport-Windows.tar.gz SHA256   # Windows
+
+# the published digest
+gh api repos/nsuiteio/nst-mpc-key-export/releases/latest \
+  --jq '.assets[] | "\(.name) \(.digest)"'
 ```
 
-**Windows**
+Without the `gh` CLI, read the same `digest` values from
+`https://api.github.com/repos/nsuiteio/nst-mpc-key-export/releases/latest`.
+
+**If the checksums do not match, stop. Do not open the app**, and report it as
+described in [SECURITY.md](SECURITY.md).
+
+### macOS
+
+macOS reports the apps as **damaged**: *"KeyPairGenerator.app" is damaged and
+can't be opened. You should move it to the Trash.*
+
+Once the checksum above matches, you can confirm this is the known signing gap
+rather than a broken file. Both apps report exactly this, and nothing else:
+
+```sh
+codesign --verify --strict KeyPairGenerator.app
+# KeyPairGenerator.app: code has no resources but signature indicates they
+# must be present
+```
+
+That message means the app bundle carries no valid signature, which macOS words
+as "damaged" once the file has the quarantine flag it gets from being
+downloaded. If you see a *different* codesign error, stop and report it.
+
+The right-click **Open** trick does not apply here, because this dialog offers no
+Open option at all. Clear the quarantine flag on the app for your role, then open
+it normally:
+
+```sh
+# Export Preparer (A)
+xattr -dr com.apple.quarantine KeyPairGenerator.app
+
+# Export Operator (B)
+xattr -dr com.apple.quarantine KeyRestore.app
+```
+
+Run these from the folder you extracted the archive into, or pass the full path
+to the app. Quote the path if it contains spaces, for example
+`xattr -dr com.apple.quarantine "/Users/me/My Tools/KeyRestore.app"`.
+
+### Windows
 
 If SmartScreen shows "Windows protected your PC", choose **More info**, then
-**Run anyway**.
+**Run anyway** — again, only after the checksum matches.
 
-**Where to run them**
+### Where to run them
 
 These tools never talk to the network, but they handle key material. Running
 them on a machine disconnected from any network is **recommended**.
@@ -158,11 +201,18 @@ For the Export Operator (B), to restore and extract a wallet private key.
   NAS, or cloud backup is the classic failure. Each holder should keep their file
   on offline media such as a USB drive.
 - Anyone holding both files can restore the wallet private key, because the key
-  pair is stored in the clear. If you find that either file has leaked, and the
-  wallet is still active in N Suite, export again with a new key pair to retire
-  the leaked generation.
-- A lost key pair file is recoverable the same way, by exporting again while
-  N Suite is still active. **Always complete a restore rehearsal, confirming the
+  pair is stored in the clear.
+- **If one of the two files has leaked** and the wallet is still active in
+  N Suite, export again with a new key pair, then destroy the previous
+  generation's files. Re-exporting does not disable the old files on its own: it
+  re-encrypts the same wallet key material to a new extraction key pair, so an
+  old key pair file and an old encrypted file still work as a pair. What protects
+  you is that the leaked file's counterpart no longer exists anywhere.
+- **If both files have leaked**, treat the wallet private key as compromised.
+  Re-exporting does not undo this, because the wallet keeps the same address and
+  therefore the same underlying key. Move the assets to a new wallet.
+- A lost key pair file is recoverable by exporting again while N Suite is still
+  active. **Always complete a restore rehearsal, confirming the
   address matches, before you terminate your N Suite contract.** After
   termination, losing either file leaves no path to recovery.
 

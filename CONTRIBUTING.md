@@ -22,7 +22,20 @@ frontend under `apps/<app>/frontend`.
 |---|---|---|
 | Go | 1.25.x | `go.mod` (`go` and `toolchain` directives) |
 | Node.js | 22.x | not pinned; `wails build` invokes `npm` for the frontend |
+| Task | 3.x | `arduino/setup-task` in the CI workflows |
 | Wails CLI | v2.10 | installed by the `init-wails` task in `Taskfile.yml` |
+
+Every command below runs through [Task](https://taskfile.dev/), so install it
+first:
+
+```sh
+brew install go-task
+# or, without Homebrew:
+go install github.com/go-task/task/v3/cmd/task@latest
+```
+
+The Wails CLI does not need a separate step; the `init-wails` task installs it on
+first use.
 
 On Linux, Wails also needs GTK and WebKit development headers:
 

@@ -7,7 +7,7 @@
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
   "author": {
-    "name": "沢谷 邦夫",
-    "email": "sawatani@doublejump.tokyo"
+    "name": "doublejump.tokyo",
+    "email": "devel@nsuite.io"
   }
 }

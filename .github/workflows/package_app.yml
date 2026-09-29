@@ -33,7 +33,11 @@ jobs:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # release_merges.yml と同じく matrix の platform を wails build へ渡す。
+      # 渡さないと runner のホストアーキテクチャ向けにしかビルドされない。
       - name: Build Wails app
+        env:
+          WAILS_BUILD_FLAGS: -platform ${{ matrix.build.platform }}
         run: task build-${{ matrix.app.name }}
 
       - uses: actions/upload-artifact@v4

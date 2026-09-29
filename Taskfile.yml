@@ -8,13 +8,16 @@ tasks:
     cmd: |
       go install github.com/wailsapp/wails/v2/cmd/wails@v2.10
 
+  # wails build へ渡す追加フラグ。CI は matrix の値から
+  # `-platform darwin/universal` などを渡す。ローカルの `task build` では
+  # 未設定となり、従来どおりホスト向けの単一アーキテクチャでビルドされる。
   build-keypair:
     deps:
       - init-wails
     dir: apps/keypair
     cmd: |
       export PATH=$PATH:$(go env GOPATH)/bin
-      wails build
+      wails build ${WAILS_BUILD_FLAGS:-}
 
   build-restore:
     deps:
@@ -22,7 +25,7 @@ tasks:
     dir: apps/restore
     cmd: |
       export PATH=$PATH:$(go env GOPATH)/bin
-      wails build
+      wails build ${WAILS_BUILD_FLAGS:-}
 
   # wails は bindings 生成用バイナリを $TMPDIR/wailsbindings という固定パスに
   # 作成し、実行後に削除する。このため2アプリを並列ビルドすると互いの一時

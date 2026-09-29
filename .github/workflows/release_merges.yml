@@ -84,7 +84,7 @@ jobs:
           done
           if [ -n "$missing" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Developer ID 署名用 Secrets が未設定のため署名と公証を省略します（未設定:$missing）"
+            echo "::warning::Developer ID 署名用 Secrets が未設定のため署名と公証を省略します（未設定:${missing}）"
           else
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi

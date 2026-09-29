@@ -4,6 +4,10 @@ on:
     branches:
       - main
     types: [closed]
+  # 署名・公証を本番リリース前に確かめるための手動実行。draft_release は
+  # pull_request.merged でガードされているため、手動実行では build ジョブ
+  # だけが走り、タグ付けや Release 作成は行われない。証明書の更新時にも使う。
+  workflow_dispatch:
 env:
   BASE_NAME: ${{ github.head_ref }}
   NODE_OPTIONS: "--max-old-space-size=4096"

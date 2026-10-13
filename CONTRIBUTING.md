@@ -1,6 +1,6 @@
 # Contributing
 
-Developer documentation for `nst-mpc-key-export`. If you only want to *use* the
+Developer documentation for `nsuite-mpc-key-export`. If you only want to *use* the
 released applications, see [README.md](README.md) instead.
 
 ## Repository layout

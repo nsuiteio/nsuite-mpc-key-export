@@ -20,8 +20,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/secutil"
 )
 
 // Magic はキーペアファイル先頭の識別子。zip等の別ファイルとの取り違えを

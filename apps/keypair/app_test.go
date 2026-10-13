@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/nsuiteio/nst-mpc-key-export/service/exportpubkey"
-	"github.com/nsuiteio/nst-mpc-key-export/service/keypairfile"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/exportpubkey"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/keypairfile"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/cfgutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/logutil"
 )
 
 // testFileName はテストでの保存先ファイル名。保存ダイアログをスタブして

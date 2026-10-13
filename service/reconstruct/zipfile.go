@@ -8,11 +8,11 @@ import (
 	ecdsa "github.com/bnb-chain/tss-lib/v2/ecdsa/keygen"
 	eddsa "github.com/bnb-chain/tss-lib/v2/eddsa/keygen"
 
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/keyutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/ziputil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/keyutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/ziputil"
 )
 
 type (

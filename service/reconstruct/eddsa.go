@@ -10,10 +10,10 @@ import (
 	"github.com/bnb-chain/tss-lib/v2/tss"
 	"github.com/decred/dcrd/dcrec/edwards/v2"
 
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/keyutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/keyutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/strutil"
 )
 
 func ReconstructEdDSA(

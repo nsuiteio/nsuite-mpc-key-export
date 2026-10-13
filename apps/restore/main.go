@@ -9,8 +9,8 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 
-	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/cfgutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
 )
 
 //go:embed all:frontend/dist

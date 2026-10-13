@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
 )
 
 func ToHex(bs []byte) string {

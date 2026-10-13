@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/secutil"
 )
 
 // QR ペイロードはモバイル側パーサー（nst-mobile-app lib/exportPubkey.ts
@@ -106,7 +106,7 @@ func TestShortFingerprint_ShortInput(t *testing.T) {
 
 // ファイル名に使うため、出力は hex（0-9A-F）のみであること。
 func TestShortFingerprint_FileNameSafe(t *testing.T) {
-	input := []byte("nst-mpc-key-export file name safety")
+	input := []byte("nsuite-mpc-key-export file name safety")
 	got := ShortFingerprint(Fingerprint(input))
 	if len(got) != 8 {
 		t.Fatalf("length must be 8: got %d (%q)", len(got), got)

@@ -1,4 +1,4 @@
-# nst-mpc-key-export
+# nsuite-mpc-key-export
 
 English | [日本語](README.ja.md)
 
@@ -24,7 +24,7 @@ wallet private key file. The tools are designed around a 2-of-2 separation model
 ## Download
 
 Get the archive for your OS from the
-[Releases](https://github.com/nsuiteio/nst-mpc-key-export/releases) page.
+[Releases](https://github.com/nsuiteio/nsuite-mpc-key-export/releases) page.
 
 | File | OS |
 |---|---|
@@ -49,7 +49,7 @@ tampered with, and these apps handle key material.
 ### Verify the download
 
 1. Download only from the official releases page:
-   <https://github.com/nsuiteio/nst-mpc-key-export/releases>
+   <https://github.com/nsuiteio/nsuite-mpc-key-export/releases>
 2. Compare the checksum of your archive against the digest GitHub publishes for
    that asset. The two values must match, ignoring the `sha256:` prefix.
 
@@ -59,12 +59,12 @@ shasum -a 256 KeyExport-macOS.tar.gz          # macOS
 certutil -hashfile KeyExport-Windows.tar.gz SHA256   # Windows
 
 # the published digest
-gh api repos/nsuiteio/nst-mpc-key-export/releases/latest \
+gh api repos/nsuiteio/nsuite-mpc-key-export/releases/latest \
   --jq '.assets[] | "\(.name) \(.digest)"'
 ```
 
 Without the `gh` CLI, read the same `digest` values from
-`https://api.github.com/repos/nsuiteio/nst-mpc-key-export/releases/latest`.
+`https://api.github.com/repos/nsuiteio/nsuite-mpc-key-export/releases/latest`.
 
 **If the checksums do not match, stop. Do not open the app**, and report it as
 described in [SECURITY.md](SECURITY.md).

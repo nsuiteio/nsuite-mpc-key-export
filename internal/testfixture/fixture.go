@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/strutil"
 )
 
 const (

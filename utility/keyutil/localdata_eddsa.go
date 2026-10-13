@@ -8,9 +8,9 @@ import (
 
 	"github.com/bnb-chain/tss-lib/v2/eddsa/keygen"
 	"github.com/bnb-chain/tss-lib/v2/tss"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/ziputil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/ziputil"
 )
 
 func LocalDataFromBytesEdDSA(

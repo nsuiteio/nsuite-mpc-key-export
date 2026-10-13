@@ -1,4 +1,4 @@
-# nst-mpc-key-export
+# nsuite-mpc-key-export
 
 [English](README.md) | 日本語
 
@@ -21,7 +21,7 @@ N Suite の MPC ウォレット秘密鍵を、オフラインでエクスポー�
 
 ## ダウンロード
 
-[Releases](https://github.com/nsuiteio/nst-mpc-key-export/releases) から
+[Releases](https://github.com/nsuiteio/nsuite-mpc-key-export/releases) から
 お使いの OS 向けのアーカイブを取得してください。
 
 | ファイル | 対応 OS |
@@ -47,7 +47,7 @@ Windows 版はコード署名を行っていないため、初回起動時に OS
 ### ダウンロードの検証
 
 1. 必ず公式のリリースページから取得する:
-   <https://github.com/nsuiteio/nst-mpc-key-export/releases>
+   <https://github.com/nsuiteio/nsuite-mpc-key-export/releases>
 2. 取得したアーカイブのチェックサムを、GitHub が公開している当該資産の digest と
    照合する。`sha256:` の接頭辞を除いて完全に一致する必要があります。
 
@@ -57,12 +57,12 @@ shasum -a 256 KeyExport-macOS.tar.gz          # macOS
 certutil -hashfile KeyExport-Windows.tar.gz SHA256   # Windows
 
 # 公開されている digest
-gh api repos/nsuiteio/nst-mpc-key-export/releases/latest \
+gh api repos/nsuiteio/nsuite-mpc-key-export/releases/latest \
   --jq '.assets[] | "\(.name) \(.digest)"'
 ```
 
 `gh` CLI が無い場合は、同じ `digest` の値を
-`https://api.github.com/repos/nsuiteio/nst-mpc-key-export/releases/latest`
+`https://api.github.com/repos/nsuiteio/nsuite-mpc-key-export/releases/latest`
 から読み取れます。
 
 **チェックサムが一致しない場合は、そこで中止してアプリを開かないでください。**

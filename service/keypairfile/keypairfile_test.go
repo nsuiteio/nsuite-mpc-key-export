@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nsuiteio/nst-mpc-key-export/service/exportpubkey"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/exportpubkey"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/secutil"
 )
 
 func genKeyPair(t *testing.T) secutil.EncryptionPrivateKey {

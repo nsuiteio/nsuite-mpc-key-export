@@ -13,14 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/nsuiteio/nst-mpc-key-export/internal/testfixture"
-	"github.com/nsuiteio/nst-mpc-key-export/service/derive"
-	"github.com/nsuiteio/nst-mpc-key-export/service/exportpubkey"
-	"github.com/nsuiteio/nst-mpc-key-export/service/keypairfile"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/internal/testfixture"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/derive"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/exportpubkey"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/keypairfile"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/cfgutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/strutil"
 )
 
 func newTestApp(t *testing.T) *App {

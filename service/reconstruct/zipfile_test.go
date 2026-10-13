@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nsuiteio/nst-mpc-key-export/internal/testfixture"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/internal/testfixture"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/strutil"
 )
 
 func TestLoadFromZip(t *testing.T) {

@@ -9,13 +9,13 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/nsuiteio/nst-mpc-key-export/service/exportpubkey"
-	"github.com/nsuiteio/nst-mpc-key-export/service/keypairfile"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/qrutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/exportpubkey"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/keypairfile"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/cfgutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/qrutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/secutil"
 )
 
 // App は取出用キーペア生成アプリ（エクスポート準備担当者用）。

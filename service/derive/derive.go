@@ -20,7 +20,7 @@ import (
 	"github.com/decred/dcrd/dcrec/edwards/v2"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
 )
 
 // hardenedKeyStart 以上の index は hardened 導出を意味し、MPC では非対応。

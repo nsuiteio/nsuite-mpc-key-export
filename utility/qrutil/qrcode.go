@@ -7,7 +7,7 @@ import (
 	"github.com/yeqown/go-qrcode/v2"
 	"github.com/yeqown/go-qrcode/writer/standard"
 
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
 )
 
 func GenerateQRCodePNG(src []byte) ([]byte, error) {

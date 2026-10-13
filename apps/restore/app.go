@@ -11,15 +11,15 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/nsuiteio/nst-mpc-key-export/service/derive"
-	"github.com/nsuiteio/nst-mpc-key-export/service/exportpubkey"
-	"github.com/nsuiteio/nst-mpc-key-export/service/keypairfile"
-	"github.com/nsuiteio/nst-mpc-key-export/service/reconstruct"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/cfgutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/secutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/strutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/derive"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/exportpubkey"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/keypairfile"
+	"github.com/nsuiteio/nsuite-mpc-key-export/service/reconstruct"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/cfgutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/secutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/strutil"
 )
 
 // App はウォレット秘密鍵復元アプリ（エクスポート実行者用）。

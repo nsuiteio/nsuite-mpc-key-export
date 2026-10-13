@@ -6,8 +6,8 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/nsuiteio/nst-mpc-key-export/utility/errutil"
-	"github.com/nsuiteio/nst-mpc-key-export/utility/logutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/errutil"
+	"github.com/nsuiteio/nsuite-mpc-key-export/utility/logutil"
 )
 
 func UnzipFile(ctx context.Context, filePath string) (

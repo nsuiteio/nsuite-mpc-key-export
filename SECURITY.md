@@ -49,4 +49,4 @@ Out of scope, because they are documented design decisions rather than defects:
 ## Supported versions
 
 Only the latest published release receives fixes. See
-[Releases](https://github.com/nsuiteio/nst-mpc-key-export/releases).
+[Releases](https://github.com/nsuiteio/nsuite-mpc-key-export/releases).

@@ -40,8 +40,9 @@ Out of scope, because they are documented design decisions rather than defects:
   purpose; separate custody by separate people is the control, and password
   encryption would trade away recovery availability. See "Why the key pair file is
   not encrypted" in [README.md](README.md).
-- **Unsigned release binaries.** The published archives are not code-signed or
-  notarized, so users must bypass Gatekeeper or SmartScreen on first launch.
+- **Unsigned Windows binaries.** The Windows archive is not code-signed, so users
+  must get past SmartScreen on first launch. (A macOS build that Gatekeeper
+  blocks *is* in scope: from v1.0.2 the macOS apps are signed and notarized.)
 - The N Suite platform itself, N Board, and the N Suite mobile app. Report issues
   in those to <devel@nsuite.io>.
 

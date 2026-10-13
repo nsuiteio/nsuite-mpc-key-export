@@ -28,11 +28,8 @@ Get the archive for your OS from the
 
 | File | OS |
 |---|---|
-| `KeyExport-macOS.tar.gz` | macOS on Apple Silicon (arm64) |
+| `KeyExport-macOS.tar.gz` | macOS (universal: Apple Silicon and Intel) |
 | `KeyExport-Windows.tar.gz` | Windows (x64) |
-
-The macOS archive is arm64 only; it will not run on an Intel Mac. On an Intel
-Mac, build from source instead — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 **Both archives contain both apps.** After extracting, use only the app that
 matches your role:
@@ -42,10 +39,11 @@ matches your role:
 
 ## First launch
 
-The released binaries are not code-signed, so both macOS and Windows will warn
-you the first time you open them. **Verify what you downloaded before you bypass
-any of these warnings.** The same warning appears whether the cause is the known
-signing gap in these releases or a download that was genuinely corrupted or
+From v1.0.2, the macOS apps are signed with a Developer ID and notarized by
+Apple. The Windows binaries are not code-signed, so Windows will warn you the
+first time you open them. **Verify what you downloaded before you open it**,
+and on Windows before you bypass the warning: the same warning appears whether
+the cause is the missing signature or a download that was genuinely corrupted or
 tampered with, and these apps handle key material.
 
 ### Verify the download
@@ -73,37 +71,23 @@ described in [SECURITY.md](SECURITY.md).
 
 ### macOS
 
-macOS reports the apps as **damaged**: *"KeyPairGenerator.app" is damaged and
-can't be opened. You should move it to the Trash.*
+The first time you open an app, macOS asks whether you want to open an app
+downloaded from the Internet. Choose **Open**.
 
-Once the checksum above matches, you can confirm this is the known signing gap
-rather than a broken file. Both apps report exactly this, and nothing else:
-
-```sh
-codesign --verify --strict KeyPairGenerator.app
-# KeyPairGenerator.app: code has no resources but signature indicates they
-# must be present
-```
-
-That message means the app bundle carries no valid signature, which macOS words
-as "damaged" once the file has the quarantine flag it gets from being
-downloaded. If you see a *different* codesign error, stop and report it.
-
-The right-click **Open** trick does not apply here, because this dialog offers no
-Open option at all. Clear the quarantine flag on the app for your role, then open
-it normally:
+You can also confirm the signature yourself. Both apps must report
+`source=Notarized Developer ID` and the double jump.tokyo team ID `FS25FA38F2`:
 
 ```sh
-# Export Preparer (A)
-xattr -dr com.apple.quarantine KeyPairGenerator.app
-
-# Export Operator (B)
-xattr -dr com.apple.quarantine KeyRestore.app
+spctl --assess --verbose=2 --type execute KeyPairGenerator.app
+# KeyPairGenerator.app: accepted
+# source=Notarized Developer ID
+# origin=Developer ID Application: double jump.tokyo Inc. (FS25FA38F2)
 ```
 
-Run these from the folder you extracted the archive into, or pass the full path
-to the app. Quote the path if it contains spaces, for example
-`xattr -dr com.apple.quarantine "/Users/me/My Tools/KeyRestore.app"`.
+**If macOS says the app is damaged, cannot be checked for malicious software,
+or comes from an unidentified developer, stop.** A signed and notarized build
+never shows these. Do not clear the quarantine flag or use right-click **Open**
+to get past them; report it as described in [SECURITY.md](SECURITY.md).
 
 ### Windows
 

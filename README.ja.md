@@ -26,11 +26,8 @@ N Suite の MPC ウォレット秘密鍵を、オフラインでエクスポー�
 
 | ファイル | 対応 OS |
 |---|---|
-| `KeyExport-macOS.tar.gz` | macOS（Apple Silicon / arm64） |
+| `KeyExport-macOS.tar.gz` | macOS（universal: Apple Silicon / Intel） |
 | `KeyExport-Windows.tar.gz` | Windows（x64） |
-
-macOS 版は arm64 のみで、Intel Mac では動作しません。Intel Mac では
-ソースからビルドしてください（[CONTRIBUTING.md](CONTRIBUTING.md) 参照）。
 
 どちらのアーカイブにも **2 つのアプリが同梱**されています。展開後、自分の役割に
 対応するアプリだけを使ってください。
@@ -40,10 +37,11 @@ macOS 版は arm64 のみで、Intel Mac では動作しません。Intel Mac �
 
 ## 初回起動
 
-配布バイナリにはコード署名を行っていないため、macOS でも Windows でも初回起動時に
-OS の警告が表示されます。**警告を回避する前に、ダウンロードしたファイルを検証して
-ください。** この警告は、本リリースの既知の署名不備でも、ダウンロードの破損や
-改変でも同じように表示されます。本ツールは鍵素材を扱うため、両者を区別せずに
+v1.0.2 以降、macOS 版のアプリは Developer ID で署名され、Apple の公証を受けています。
+Windows 版はコード署名を行っていないため、初回起動時に OS の警告が表示されます。
+**開く前に（Windows では警告を回避する前に）、ダウンロードしたファイルを検証して
+ください。** この警告は、署名が無いことが原因でも、ダウンロードの破損や改変が
+原因でも同じように表示されます。本ツールは鍵素材を扱うため、両者を区別せずに
 保護を解除すべきではありません。
 
 ### ダウンロードの検証
@@ -72,38 +70,23 @@ gh api repos/nsuiteio/nst-mpc-key-export/releases/latest \
 
 ### macOS
 
-macOS では「**壊れているため開けません。ゴミ箱に入れる必要があります。**」と
-表示されます。
+初回起動時に「インターネットからダウンロードされたアプリケーションです。開いても
+よろしいですか?」と確認されます。「開く」を選んでください。
 
-上記のチェックサムが一致していれば、次のコマンドで「ファイルが壊れている」のでは
-なく「既知の署名不備」であることを確認できます。両アプリとも、これ以外のメッセージは
-出ません。
-
-```sh
-codesign --verify --strict KeyPairGenerator.app
-# KeyPairGenerator.app: code has no resources but signature indicates they
-# must be present
-```
-
-これはアプリバンドルに有効な署名が無いという意味で、ダウンロード時に付く
-quarantine 属性と組み合わさると macOS が「壊れている」と表現します。**これと違う
-codesign エラーが出た場合は、中止して報告してください。**
-
-この表示では「開く」の選択肢自体が出ないため、右クリック→「開く」では回避
-できません。自分の役割に対応するアプリの quarantine 属性を外してから、通常どおり
-起動してください。
+署名は自分でも確認できます。両アプリとも `source=Notarized Developer ID` と
+double jump.tokyo のチーム ID `FS25FA38F2` が表示される必要があります。
 
 ```sh
-# エクスポート準備担当者（A）
-xattr -dr com.apple.quarantine KeyPairGenerator.app
-
-# エクスポート実行者（B）
-xattr -dr com.apple.quarantine KeyRestore.app
+spctl --assess --verbose=2 --type execute KeyPairGenerator.app
+# KeyPairGenerator.app: accepted
+# source=Notarized Developer ID
+# origin=Developer ID Application: double jump.tokyo Inc. (FS25FA38F2)
 ```
 
-アーカイブを展開したフォルダで実行するか、アプリのフルパスを指定してください。
-パスに空白が含まれる場合は引用符で囲みます。例:
-`xattr -dr com.apple.quarantine "/Users/me/My Tools/KeyRestore.app"`
+**「壊れているため開けません」「悪質なソフトウェアかどうかを確認できません」
+「開発元が未確認」と表示された場合は、そこで中止してください。** 署名・公証済みの
+ビルドではこれらは表示されません。quarantine 属性の削除や右クリック→「開く」で
+回避せず、[SECURITY.md](SECURITY.md) の手順で報告してください。
 
 ### Windows
 

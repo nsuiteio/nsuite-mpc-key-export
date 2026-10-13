@@ -144,21 +144,25 @@ To cut a release:
    `KeyExport-macOS.tar.gz` and `KeyExport-Windows.tar.gz` attached.
 3. Review the draft release notes and publish the release manually.
 
-The release binaries are **not code-signed or notarized**. Users have to bypass
-Gatekeeper and SmartScreen on first launch; [README.md](README.md) documents how.
+The macOS build is universal (`darwin/universal`). The release workflow signs
+each `.app` with a Developer ID, notarizes it with `notarytool`, and staples the
+ticket. These steps need the `MACOS_CERTIFICATE_BASE64`,
+`MACOS_CERTIFICATE_PASSWORD`, `MACOS_SIGNING_IDENTITY`, `ASC_API_KEY_BASE64`,
+`ASC_API_KEY_ID`, and `ASC_API_ISSUER_ID` secrets. **If any of them is missing,
+the workflow only emits a warning and publishes an unsigned macOS build**, so
+check the signature of the draft release's macOS asset before you publish it:
 
-Two known gaps in the release pipeline, both verified against the v1.0.1 assets:
+```sh
+spctl --assess --verbose=2 --type execute KeyPairGenerator.app KeyRestore.app
+# each must report: source=Notarized Developer ID
+```
 
-- **The macOS artifact is arm64 only, not universal.** The build matrix carries a
-  `platform: 'darwin/universal'` value, but the build step runs `task build`,
-  which never passes `-platform` to `wails build`. The matrix value is therefore
-  unused, and the binary is whatever the `macos-latest` runner produces.
-- **The macOS app bundle has no valid signature.** `wails build` applies the Go
-  linker's ad-hoc signature to the executable only and does not seal the bundle,
-  so `codesign --verify --strict` fails with `code has no resources but signature
-  indicates they must be present`. With the quarantine flag set, Gatekeeper
-  reports this as "damaged" rather than "unsigned", which is why the README tells
-  users to clear quarantine instead of using right-click Open.
+To check signing and notarization without cutting a release, run **Release
+merged** manually (`workflow_dispatch`); this runs only the build job and
+creates no tag or release.
+
+The Windows binaries are not code-signed. Users have to get past SmartScreen on
+first launch; [README.md](README.md) documents how.
 
 ## Reporting security issues
 
